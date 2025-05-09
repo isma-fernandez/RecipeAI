@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/placeholder_1.dart';
 import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/camera_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -39,7 +40,7 @@ class _RootPageState extends State<RootPage> {
   final List<Widget> _pages = const [
     Placeholder1(),
     RecipesScreen(),
-    Placeholder1(),
+    CameraScreen(),
     SettingsScreen(),
   ];
 
