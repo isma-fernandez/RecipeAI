@@ -11,15 +11,33 @@ class RecipesScreen extends StatelessWidget {
     // TODO: temporal per mostrar alguna cosa per ara
     final List<Recipe> recipes = [
       Recipe(
-        title: 'Recepta guardada 1',
+        title: 'Chocolate Chip Cookies',
         duration: 10,
-        numberOfPeople: 2,
+        numberOfPeople: 12,
         imageUrl:
-        'https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=800&q=60',
-        steps: ['pas 1', 'pas 2', 'pas 3'],
-        ingredients: ['ingredient 1', 'ingredient 2', 'ingredient 3']
+        'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=60',
+        ingredients: [
+          '1 cup unsalted butter, softened',
+          '1 cup granulated sugar',
+          '1 cup packed brown sugar',
+          '2 large eggs',
+          '1 tsp vanilla extract',
+          '3 cups all-purpose flour',
+          '1 tsp baking soda',
+          '½ tsp salt',
+          '2 cups chocolate chips',
+        ],
+        steps: [
+          'Pre-heat oven to 350 °F (175 °C). Line a baking sheet with parchment paper.',
+          'Cream butter and both sugars until light and fluffy.',
+          'Beat in eggs one at a time, then add vanilla extract.',
+          'Whisk together flour, baking soda and salt; add to the wet mixture until just combined.',
+          'Fold in chocolate chips.',
+          'Drop rounded tablespoons of dough onto the baking sheet and bake 8-10 min.',
+        ],
       ),
     ];
+
 
     return SafeArea(
       child: Padding(
