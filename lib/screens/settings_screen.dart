@@ -18,7 +18,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool autoUploadPhotos = false;
   double fontScale = 1.0;            // 0.8–1.4
   String language = 'Español';       // Español, English…
-  String units = 'Métrico';          // Métrico, Imperial
   Color accentColor = Colors.blueAccent;
 
   // ==================================================
@@ -43,18 +42,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onSelected: (v) => setState(() => language = v),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.straighten),
-            title: const Text('Unidades de medida'),
-            subtitle: Text(units),
-            onTap: () => _showOptionsDialog(
-              title: 'Unidades',
-              options: const ['Métrico', 'Imperial'],
-              selected: units,
-              onSelected: (v) => setState(() => units = v),
-            ),
-          ),
-
           _buildSectionTitle('Apariencia'),
           SwitchListTile(
             value: darkMode,

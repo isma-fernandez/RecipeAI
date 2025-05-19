@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'screens/placeholder_1.dart';
 import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/camera_screen.dart';
+import 'screens/login_screen.dart';
+import 'controller/settings_controller.dart';
 
 void main() => runApp(const MyApp());
 
@@ -35,12 +36,12 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
-  int _currentIndex = 1; // "Receptes" seleccionada per defecte
+  int _currentIndex = 0; // "Receptes" seleccionada per defecte
 
   final List<Widget> _pages = const [
-    Placeholder1(),
     RecipesScreen(),
     CameraScreen(),
+    LoginScreen(),
     SettingsScreen(),
   ];
 
@@ -56,9 +57,9 @@ class _RootPageState extends State<RootPage> {
         selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Placeholder1'),
           BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: 'Receptes'),
           BottomNavigationBarItem(icon: Icon(Icons.photo_camera), label: 'Escanejar'),
+          BottomNavigationBarItem(icon: Icon(Icons.login), label: 'Login'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Configuració'),
         ],
       ),
