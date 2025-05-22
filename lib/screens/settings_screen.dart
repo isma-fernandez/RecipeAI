@@ -8,7 +8,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // == ESTADO LOCAL (temporal) ==
   bool darkMode = true;
   bool highContrast = false;
   bool reduceMotion = false;
@@ -16,11 +15,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool cookingReminders = false;
   bool useMobileData = true;
   bool autoUploadPhotos = false;
-  double fontScale = 1.0;            // 0.8–1.4
-  String language = 'Español';       // Español, English…
+  double fontScale = 1.0;
+  String language = 'Español';
   Color accentColor = Colors.blueAccent;
 
-  // ==================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,14 +128,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.description_outlined),
             title: const Text('Términos y privacidad'),
             onTap: () {
-              // Navega o abre un WebView cuando tengas los documentos legales.
             },
           ),
           ListTile(
             leading: const Icon(Icons.star_rate_outlined),
             title: const Text('Dejar valoración'),
             onTap: () {
-              // link a App Store / Google Play
             },
           ),
           const SizedBox(height: 24),
@@ -155,7 +151,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
   );
 
-  /// Diálogo de selección simple (idioma, unidades…)
   Future<void> _showOptionsDialog({
     required String title,
     required List<String> options,
@@ -186,7 +181,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Selector muy sencillo de color de acento
   Future<void> _showColorPicker() async {
     final colors = [
       Colors.blueAccent,

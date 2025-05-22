@@ -28,15 +28,13 @@ class _CameraScreenState extends State<CameraScreen> {
           (camera) => camera.lensDirection == CameraLensDirection.back,
       orElse: () => cameras.first,
     );
-
     _controller = CameraController(
       backCam,
       ResolutionPreset.medium,
       enableAudio: false,
     );
-
     _initializeControllerFuture = _controller.initialize();
-    setState(() {}); // reconstruir cuando esté la future
+    setState(() {});
   }
 
   @override
@@ -49,12 +47,10 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       await _initializeControllerFuture;
       final file = await _controller.takePicture();
-
-      // Guardamos una copia temporal local (luego se subirá a GCP)
+      // Guardamos una copia temporal local (luego la tendremos que subir)
       final dir = await getTemporaryDirectory();
       final target = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await file.saveTo(target);
-
       setState(() => _capturedFile = XFile(target));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,12 +68,10 @@ class _CameraScreenState extends State<CameraScreen> {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-
           return Stack(
             children: [
               Positioned.fill(child: CameraPreview(_controller)),
-
-              // Botón de disparo
+              // Botón camara
               Positioned(
                 bottom: 40,
                 left: 0,
@@ -97,8 +91,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
               ),
-
-              // Mini-preview de la última foto tomada
+              // DEBUG para ver si se toma la foto
               if (_capturedFile != null)
                 Positioned(
                   bottom: 40,

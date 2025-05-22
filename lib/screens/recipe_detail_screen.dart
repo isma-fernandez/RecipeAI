@@ -11,7 +11,6 @@ class RecipeDetailScreen extends StatelessWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Imagen de cabecera con “collapsing” effect
           SliverAppBar(
             backgroundColor: Colors.black,
             expandedHeight: 250,
@@ -25,13 +24,11 @@ class RecipeDetailScreen extends StatelessWidget {
             ),
           ),
 
-          /// CONTENIDO
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate(
                 [
-                  /// Chips “personas” y “tiempo”
                   Row(
                     children: [
                       _InfoChip(icon: Icons.people, label: '${recipe.numberOfPeople}'),
@@ -41,7 +38,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  /// INGREDIENTES
+                  // INGREDIENTES
                   Text('Ingredients',
                       style: Theme.of(context)
                           .textTheme
@@ -62,7 +59,7 @@ class RecipeDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  /// PASOS / MÉTODO
+                  // PASOS
                   Text('Method',
                       style: Theme.of(context)
                           .textTheme
@@ -72,7 +69,6 @@ class RecipeDetailScreen extends StatelessWidget {
                   ...recipe.steps.asMap().entries.map(
                         (entry) => _StepTile(number: entry.key + 1, text: entry.value),
                   ),
-
                   const SizedBox(height: 32),
                 ],
               ),

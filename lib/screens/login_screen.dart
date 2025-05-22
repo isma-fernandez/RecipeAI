@@ -24,14 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text.trim(),
       );
-
-      // Login exitoso, redirige
+      // Login exitoso, redirige (de momento mensaje solo)
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sesión iniciada correctamente')),
@@ -51,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen> {
         default:
           msg = 'Error inesperado: ${e.message}';
       }
-
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -73,8 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text('RecipeAI', textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 48),
-
-              // === Email ============================
+              // Email
               TextFormField(
                 controller: _emailCtrl,
                 autocorrect: false,
@@ -92,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // === Contraseña =======================
+              //Contraseña
               TextFormField(
                 controller: _pwdCtrl,
                 obscureText: _obscure,
@@ -110,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // === Botón de login ===================
+              // login
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -122,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // === Links “Olvidé…” y “Crear cuenta” ==
+              // Links inferiores
               TextButton(
                 onPressed: () {
                   // future: reset de contraseña
@@ -130,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // await FirebaseAuth.instance
                   //     .sendPasswordResetEmail(email: _emailCtrl.text.trim());
                 },
-                child: const Text('¿Olvidaste la contraseña?'),
+                child: const Text('¿Has olvidado la contraseña?'),
               ),
               TextButton(
                 onPressed: () {

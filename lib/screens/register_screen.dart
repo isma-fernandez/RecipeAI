@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -31,12 +32,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     try {
-      // 1. Crea la cuenta
       final login = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailCtrl.text.trim(),
-        password: _pwdCtrl.text.trim(),);
-      // 2. Guarda el nombre para mostrar
-      await login.user?.updateDisplayName(_nameCtrl.text.trim());
+        password: _pwdCtrl.text.trim(),
+      );
+      const defaultFoto =
+          'https://storage.googleapis.com/airecipe-user-photos/default.png';
+      final uid = login.user!.uid;
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name'      : _nameCtrl.text.trim(),
+        'photoUrl'  : defaultFoto,
+        'allergies' : '',
+        'createdAt' : FieldValue.serverTimestamp(),
+        'updatedAt' : FieldValue.serverTimestamp(),
+      });
 
       if (!mounted) return;
       Navigator.of(context).pop();            // vuelve al login
@@ -47,8 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'invalid-email'        => 'Correo no válido',
         _                      => 'Error: ${e.message}'
       };
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -123,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Botón «Crear cuenta»
+              // Botón Crear cuent
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
