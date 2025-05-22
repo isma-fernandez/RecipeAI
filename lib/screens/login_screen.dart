@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'recipes_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -20,14 +22,37 @@ class _LoginScreenState extends State<LoginScreen> {
     _pwdCtrl.dispose();
     super.dispose();
   }
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      FocusScope.of(context).unfocus(); // cierra teclado
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🤖 Sesión iniciada (mock)')),
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _pwdCtrl.text.trim(),
       );
-      // Aquí, cuando toque, llamarás a tu backend o Firebase/GCP…
+
+      // Login exitoso, redirige
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sesión iniciada correctamente')),
+      );
+    } on FirebaseAuthException catch (e) {
+      String msg;
+      switch (e.code) {
+        case 'invalid-credential':
+          msg = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+          break;
+        case 'user-not-found':
+          msg = 'No existe ningún usuario con ese correo.';
+          break;
+        case 'wrong-password':
+          msg = 'Contraseña incorrecta.';
+          break;
+        default:
+          msg = 'Error inesperado: ${e.message}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -101,6 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
               TextButton(
                 onPressed: () {
                   // future: reset de contraseña
+                  // TODO: peta ns porque
+                  // await FirebaseAuth.instance
+                  //     .sendPasswordResetEmail(email: _emailCtrl.text.trim());
                 },
                 child: const Text('¿Olvidaste la contraseña?'),
               ),

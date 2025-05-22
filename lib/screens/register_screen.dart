@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -26,13 +27,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      FocusScope.of(context).unfocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🎉 Cuenta creada (mock)')),
-      );
-      Navigator.of(context).pop();        // vuelve a Login
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    try {
+      // 1. Crea la cuenta
+      final login = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _pwdCtrl.text.trim(),);
+      // 2. Guarda el nombre para mostrar
+      await login.user?.updateDisplayName(_nameCtrl.text.trim());
+
+      if (!mounted) return;
+      Navigator.of(context).pop();            // vuelve al login
+    } on FirebaseAuthException catch (e) {
+      var msg = switch (e.code) {
+        'email-already-in-use' => 'Este correo ya está en uso',
+        'weak-password'        => 'Contraseña demasiado débil',
+        'invalid-email'        => 'Correo no válido',
+        _                      => 'Error: ${e.message}'
+      };
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
