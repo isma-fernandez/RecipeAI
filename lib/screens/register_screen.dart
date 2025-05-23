@@ -41,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final uid = login.user!.uid;
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name'      : _nameCtrl.text.trim(),
+        'email'     : _emailCtrl.text.trim(),
         'photoUrl'  : defaultFoto,
         'allergies' : '',
         'createdAt' : FieldValue.serverTimestamp(),

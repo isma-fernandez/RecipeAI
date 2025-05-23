@@ -5,6 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/recipes_screen.dart';
 import 'screens/camera_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/favorites_screen.dart';
+import 'screens/popular_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/user_screen.dart';
 import 'screens/settings_screen.dart';
@@ -48,29 +51,43 @@ class _RootPageState extends State<RootPage> {
   @override
   void initState() {
     super.initState();
-    // Redibujar si el usuario inicia o cierra sesión
-    FirebaseAuth.instance.authStateChanges().listen((_) {
-      if (mounted) setState(() {});
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          if (user != null) {
+            _currentIndex = 1;  // <--- redirigeix a la pantalla "Populars"
+          }
+        });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final loggedIn = FirebaseAuth.instance.currentUser != null;
-    // Páginas que se muestran según el estado de sesión
     final pages = [
       const RecipesScreen(),
+      const PopularScreen(),
       const CameraScreen(),
+      if (loggedIn) const HistoryScreen(),
+      if (loggedIn) const FavoritesScreen(),
       if (loggedIn) const ProfileScreen() else const LoginScreen(),
       const SettingsScreen(),
     ];
 
-    // Nav
     final items = [
       const BottomNavigationBarItem(
           icon: Icon(Icons.menu_book_rounded), label: 'Receptes'),
       const BottomNavigationBarItem(
+          icon: Icon(Icons.star), label: 'Populars'),    // Platos populares
+      const BottomNavigationBarItem(
           icon: Icon(Icons.photo_camera), label: 'Escanejar'),
+      if (loggedIn)
+        const BottomNavigationBarItem(
+            icon: Icon(Icons.history), label: 'Historial'),
+      if (loggedIn)
+        const BottomNavigationBarItem(
+            icon: Icon(Icons.favorite), label: 'Favorits'),
       BottomNavigationBarItem(
         icon: Icon(loggedIn ? Icons.account_circle : Icons.login),
         label: loggedIn ? 'Perfil' : 'Login',
@@ -79,7 +96,7 @@ class _RootPageState extends State<RootPage> {
           icon: Icon(Icons.settings_outlined), label: 'Configuració'),
     ];
 
-    // Evita índices fuera de rango si cambia el nº de páginas
+    // Ajusta el índice si cambia el número de páginas
     _currentIndex = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(
