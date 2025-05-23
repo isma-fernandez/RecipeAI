@@ -1,4 +1,3 @@
-// /screens/profile_screen.dart
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,16 +14,15 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  //  Ajustes del bucket y la imagen por defecto
   static const _bucketUrl = 'gs://airecipe-user-photos';
   static const _defaultAvatar =
       'https://storage.googleapis.com/airecipe-user-photos/default.png';
 
-  // Instancia de Firebase Storage
   final FirebaseStorage _bucket = FirebaseStorage.instanceFor(bucket: _bucketUrl);
 
   final _formKey = GlobalKey<FormState>();
   final _allergyCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
 
   bool _uploading = false;
   String? _photoUrl;
@@ -43,10 +41,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final snap = await _users.doc(_user.uid).get();
     if (snap.exists) {
       final data = snap.data() as Map<String, dynamic>;
-      _photoUrl = data['photoUrl'];                // puede ser null
+      _photoUrl = data['photoUrl'];
       _allergyCtrl.text = data['allergies'] ?? '';
+      _nameCtrl.text = data['name'] ?? _user.displayName ?? '';
     } else {
-      // Si el documento NO existe creamos uno con avatar por defecto
       await _users.doc(_user.uid).set({
         'name': _user.displayName ?? '',
         'photoUrl': _defaultAvatar,
@@ -55,6 +53,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       _photoUrl = _defaultAvatar;
+      _nameCtrl.text = _user.displayName ?? '';
     }
     setState(() {});
   }
@@ -69,10 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await ref.putFile(File(picked.path));
     _photoUrl = await ref.getDownloadURL();
 
-    await _users
-        .doc(_user.uid)
-        .set({'photoUrl': _photoUrl, 'updatedAt': FieldValue.serverTimestamp()},
-        SetOptions(merge: true));
+    await _users.doc(_user.uid).set({
+      'photoUrl': _photoUrl,
+      'updatedAt': FieldValue.serverTimestamp()
+    }, SetOptions(merge: true));
 
     setState(() => _uploading = false);
   }
@@ -80,6 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     await _users.doc(_user.uid).set({
+      'name': _nameCtrl.text.trim(),
       'allergies': _allergyCtrl.text.trim(),
       'photoUrl': _photoUrl ?? _defaultAvatar,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -142,8 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               TextFormField(
-                initialValue: _user.displayName,
-                readOnly: true,
+                controller: _nameCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Nombre',
                   prefixIcon: Icon(Icons.person_outline),
