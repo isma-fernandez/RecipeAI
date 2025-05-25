@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../model/recipe.dart';
+import 'recipe_detail_screen.dart'; // importa la pantalla de detalle
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -32,6 +34,17 @@ class FavoritesScreen extends StatelessWidget {
             itemCount: docs.length,
             itemBuilder: (context, i) {
               final data = docs[i].data() as Map<String, dynamic>;
+
+              // Crear Recipe desde datos de Firestore
+              final recipe = Recipe(
+                title: data['name'] ?? 'Receta',
+                imageUrl: data['imageUrl'] ?? '',
+                duration: (data['duration'] ?? 0) as int,
+                numberOfPeople: (data['numberOfPeople'] ?? 0) as int,
+                ingredients: List<String>.from(data['ingredients'] ?? []),
+                steps: List<String>.from(data['steps'] ?? []),
+              );
+
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
@@ -44,7 +57,14 @@ class FavoritesScreen extends StatelessWidget {
                         ? (data['addedAt'] as Timestamp).toDate().toString()
                         : '',
                   ),
-                  // onTap: () => // navegar a detalles si quieres,
+                  onTap: () {
+                    // Navegar a detalle con la receta construida
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecipeDetailScreen(recipe: recipe),
+                      ),
+                    );
+                  },
                 ),
               );
             },
