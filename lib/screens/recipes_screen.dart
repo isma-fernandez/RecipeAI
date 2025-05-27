@@ -9,33 +9,32 @@ class RecipesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: temporal per mostrar alguna cosa per ara
+    final dataFromFirestore = {
+      'nombre_receta': 'Tortilla de Patatas',
+      'personas': 4,
+      'tiempo_total': 45,
+      'imagen': 'https://lacocinadefrabisa.lavozdegalicia.es/wp-content/uploads/2019/05/tortilla-espa%C3%B1ola.jpg',
+      'ingredientes': [
+        '4 huevos',
+        '3 patatas medianas',
+        '1 cebolla',
+        'Aceite de oliva',
+        'Sal'
+      ],
+      'pasos_con_tiempo': [
+        'Pelar y cortar las patatas - 10 min',
+        'Freír las patatas y cebolla - 15 min',
+        'Batir los huevos - 5 min',
+        'Mezclar todo y cocinar - 15 min'
+      ],
+      'likes': 27,
+    };
+
+    final documentId = 'abc123'; // Este es el ID del documento Firestore
+
+    final recipe = Recipe.fromJson(dataFromFirestore, documentId);
     final List<Recipe> recipes = [
-      Recipe(
-        title: 'Chocolate Chip Cookies',
-        duration: 10,
-        numberOfPeople: 12,
-        imageUrl:
-        'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=60',
-        ingredients: [
-          '1 cup unsalted butter, softened',
-          '1 cup granulated sugar',
-          '1 cup packed brown sugar',
-          '2 large eggs',
-          '1 tsp vanilla extract',
-          '3 cups all-purpose flour',
-          '1 tsp baking soda',
-          '½ tsp salt',
-          '2 cups chocolate chips',
-        ],
-        steps: [
-          'Pre-heat oven to 350 °F (175 °C). Line a baking sheet with parchment paper.',
-          'Cream butter and both sugars until light and fluffy.',
-          'Beat in eggs one at a time, then add vanilla extract.',
-          'Whisk together flour, baking soda and salt; add to the wet mixture until just combined.',
-          'Fold in chocolate chips.',
-          'Drop rounded tablespoons of dough onto the baking sheet and bake 8-10 min.',
-        ],
-      ),
+      recipe
     ];
 
 

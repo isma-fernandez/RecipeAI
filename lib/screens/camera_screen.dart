@@ -1,8 +1,13 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:recipeai/screens/recipe_detail_screen.dart';
+
+import '../model/recipe.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key}) : super(key: key);
@@ -15,6 +20,9 @@ class _CameraScreenState extends State<CameraScreen> {
   late Future<void> _initializeControllerFuture;
   late CameraController _controller;
   XFile? _capturedFile;
+
+  bool _isProcessing = false;
+  Recipe? _recipeResult;             // receta recibida
 
   @override
   void initState() {
@@ -43,21 +51,78 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
+  // ───────────────────────── FOTO + BACKEND ──────────────────────────
+
   Future<void> _takePicture() async {
     try {
       await _initializeControllerFuture;
       final file = await _controller.takePicture();
-      // Guardamos una copia temporal local (luego la tendremos que subir)
+
+      // Guarda una copia temporal
       final dir = await getTemporaryDirectory();
-      final target = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await file.saveTo(target);
-      setState(() => _capturedFile = XFile(target));
+      final localPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await file.saveTo(localPath);
+      final localFile = XFile(localPath);
+
+      setState(() {
+        _capturedFile = localFile;
+        _isProcessing = true;
+      });
+
+      // Sube a Storage y obtén URI
+      final gcsUri = await _uploadToStorage(localFile);
+
+      //Pide la receta (la Cloud Function evita duplicados y/o los devuelve)
+      final json = await _callGenRecipe(gcsUri);
+
+      //Convierte a modelo
+      final recipe = Recipe.fromJson(json, json['id'] as String);
+
+      // navega directamente al detalle
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RecipeDetailScreen(recipe: recipe),
+            ),
+          );
+
+
+      setState(() {
+        _recipeResult = recipe;
+        _isProcessing = false;
+      });
+
+      // quitar
+      _showRecipeDialog(recipe);
     } catch (e) {
+      setState(() => _isProcessing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error capturando foto: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
+
+  /// Subir la foto
+  Future<String> _uploadToStorage(XFile file) async {
+    // Usa un nombre único
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('photos')
+        .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+    await ref.putFile(File(file.path));
+    return 'gs://${ref.bucket}/${ref.fullPath}';
+  }
+
+  /// Llama a la Cloud Function genRecipe y devuelve el JSON de receta
+  Future<Map<String, dynamic>> _callGenRecipe(String gcsUri) async {
+    final callable = FirebaseFunctions.instance.httpsCallable('genRecipe');
+    final result = await callable.call(<String, dynamic>{'gcsUri': gcsUri});
+    // La función ya guarda/lee de Firestore y añade el documentId como 'id'
+    return Map<String, dynamic>.from(result.data as Map);
+  }
+
+  // ──────────────────────────── UI ──────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +136,8 @@ class _CameraScreenState extends State<CameraScreen> {
           return Stack(
             children: [
               Positioned.fill(child: CameraPreview(_controller)),
-              // Botón camara
+
+              // Botón disparo
               Positioned(
                 bottom: 40,
                 left: 0,
@@ -79,7 +145,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 child: Align(
                   alignment: Alignment.center,
                   child: GestureDetector(
-                    onTap: _takePicture,
+                    onTap: _isProcessing ? null : _takePicture,
                     child: Container(
                       width: 72,
                       height: 72,
@@ -91,7 +157,8 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
               ),
-              // DEBUG para ver si se toma la foto
+
+              // Miniatura de foto capturada (debug)
               if (_capturedFile != null)
                 Positioned(
                   bottom: 40,
@@ -107,6 +174,15 @@ class _CameraScreenState extends State<CameraScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
+                  ),
+                ),
+
+              // Overlay de carga
+              if (_isProcessing)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black45,
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
                 ),
             ],
@@ -134,6 +210,38 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showRecipeDialog(Recipe recipe) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(recipe.title),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.network(recipe.imageUrl),
+              const SizedBox(height: 8),
+              Text('Personas: ${recipe.numberOfPeople}'),
+              Text('Tiempo total: ${recipe.duration} min'),
+              const SizedBox(height: 8),
+              const Text('Ingredientes:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...recipe.ingredients.map(Text.new),
+              const SizedBox(height: 8),
+              const Text('Pasos:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...recipe.steps.map(Text.new),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }

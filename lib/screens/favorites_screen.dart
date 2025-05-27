@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../model/recipe.dart';
-import 'recipe_detail_screen.dart'; // importa la pantalla de detalle
+import 'recipe_detail_screen.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -33,32 +34,41 @@ class FavoritesScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: docs.length,
             itemBuilder: (context, i) {
-              final data = docs[i].data() as Map<String, dynamic>;
+              final doc = docs[i];
+              final data = doc.data() as Map<String, dynamic>;
 
-              // Crear Recipe desde datos de Firestore
-              final recipe = Recipe(
-                title: data['name'] ?? 'Receta',
-                imageUrl: data['imageUrl'] ?? '',
-                duration: (data['duration'] ?? 0) as int,
-                numberOfPeople: (data['numberOfPeople'] ?? 0) as int,
-                ingredients: List<String>.from(data['ingredients'] ?? []),
-                steps: List<String>.from(data['steps'] ?? []),
-              );
+              // Construimos el modelo Recipe directamente
+              final recipe = Recipe.fromJson(data, doc.id);
 
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  leading: data['imageUrl'] != null
-                      ? Image.network(data['imageUrl'], width: 56, height: 56, fit: BoxFit.cover)
+                  leading: recipe.imageUrl.isNotEmpty
+                      ? Image.network(
+                    recipe.imageUrl,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                  )
                       : const Icon(Icons.fastfood, size: 56),
-                  title: Text(data['name'] ?? 'Receta'),
+                  title: Text(recipe.title),
                   subtitle: Text(
                     data['addedAt'] != null
-                        ? (data['addedAt'] as Timestamp).toDate().toString()
+                        ? (data['addedAt'] as Timestamp)
+                        .toDate()
+                        .toString()
                         : '',
                   ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.thumb_up, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${recipe.likes}'),
+                    ],
+                  ),
                   onTap: () {
-                    // Navegar a detalle con la receta construida
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => RecipeDetailScreen(recipe: recipe),

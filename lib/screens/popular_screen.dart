@@ -41,16 +41,31 @@ class PopularScreen extends StatelessWidget {
                   }
                   final recipes = snapshot.data!.docs.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    // Si tu model Recipe espera estos campos, ¡los conviertes!
-                    return Recipe(
-                      title: data['name'] ?? 'Sense nom',
-                      duration: data['duration'] ?? 0,
-                      numberOfPeople: data['numberOfPeople'] ?? 1,
-                      imageUrl: data['imageUrl'] ?? '',
-                      ingredients: List<String>.from(data['ingredients'] ?? []),
-                      steps: List<String>.from(data['steps'] ?? []),
-                      // Si quieres, puedes añadir aquí otros campos de Recipe
-                    );
+
+                    final dataFromFirestore = {
+                      'nombre_receta': 'Tortilla de Patatas',
+                      'personas': 4,
+                      'tiempo_total': 45,
+                      'imagen': 'https://lacocinadefrabisa.lavozdegalicia.es/wp-content/uploads/2019/05/tortilla-espa%C3%B1ola.jpg',
+                      'ingredientes': [
+                        '4 huevos',
+                        '3 patatas medianas',
+                        '1 cebolla',
+                        'Aceite de oliva',
+                        'Sal'
+                      ],
+                      'pasos_con_tiempo': [
+                        'Pelar y cortar las patatas - 10 min',
+                        'Freír las patatas y cebolla - 15 min',
+                        'Batir los huevos - 5 min',
+                        'Mezclar todo y cocinar - 15 min'
+                      ],
+                      'likes': 27,
+                    };
+
+                    final documentId = 'abc123'; // Este es el ID del documento Firestore
+
+                    return Recipe.fromJson(dataFromFirestore, documentId);
                   }).toList();
 
                   return GridView.builder(

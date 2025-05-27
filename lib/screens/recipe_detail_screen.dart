@@ -1,12 +1,13 @@
+// lib/screens/recipe_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../model/recipe.dart';
+
+import '../model/recipe.dart';      // ⬅️  sigue igual
 import 'dart:async';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
-
   const RecipeDetailScreen({Key? key, required this.recipe}) : super(key: key);
 
   @override
@@ -23,22 +24,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void initState() {
     super.initState();
 
-    // Escuchar cambios de autenticación y actualizar estado
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((usr) {
-      if (!mounted) return; // evitar setState si widget desmontado
-      setState(() {
-        user = usr;
-      });
+    _authSubscription =
+        FirebaseAuth.instance.authStateChanges().listen((usr) {
+          if (!mounted) return;
+          setState(() => user = usr);
 
-      if (usr != null) {
-        _checkIfFavorite(usr.uid);
-      } else {
-        setState(() {
-          isFav = false;
-          isLoading = false;
+          if (usr != null) {
+            _checkIfFavorite(usr.uid);
+          } else {
+            setState(() {
+              isFav = false;
+              isLoading = false;
+            });
+          }
         });
-      }
-    });
   }
 
   @override
@@ -47,15 +46,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     super.dispose();
   }
 
+  /// 🔄  ahora usamos el id del documento, no el título
   Future<void> _checkIfFavorite(String uid) async {
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('favorites')
-        .doc(widget.recipe.title)
+        .doc(widget.recipe.id)
         .get();
 
-    if (!mounted) return; // evitar setState si ya desmontado
+    if (!mounted) return;
     setState(() {
       isFav = doc.exists;
       isLoading = false;
@@ -69,30 +69,29 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         .collection('users')
         .doc(user!.uid)
         .collection('favorites')
-        .doc(widget.recipe.title);
+        .doc(widget.recipe.id);
 
     if (isFav) {
       await favRef.delete();
     } else {
       await favRef.set({
-        'name': widget.recipe.title,
-        'imageUrl': widget.recipe.imageUrl,
+        'nombre_receta': widget.recipe.title,
+        'imagen': widget.recipe.imageUrl,
         'addedAt': FieldValue.serverTimestamp(),
-        'duration': widget.recipe.duration,
-        'numberOfPeople': widget.recipe.numberOfPeople,
-        'ingredients': widget.recipe.ingredients,
-        'steps': widget.recipe.steps,
+        'tiempo_total': widget.recipe.duration,
+        'personas': widget.recipe.numberOfPeople,
+        'ingredientes': widget.recipe.ingredients,
+        'pasos_con_tiempo': widget.recipe.steps,
       });
     }
 
     if (!mounted) return;
-    setState(() {
-      isFav = !isFav;
-    });
+    setState(() => isFav = !isFav);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isFav ? 'Agregado a favoritos' : 'Eliminado de favoritos'),
+        content:
+        Text(isFav ? 'Agregado a favoritos' : 'Eliminado de favoritos'),
       ),
     );
   }
@@ -125,7 +124,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ),
             ],
           ),
-
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
@@ -133,14 +131,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 [
                   Row(
                     children: [
-                      _InfoChip(icon: Icons.people, label: '${widget.recipe.numberOfPeople}'),
+                      _InfoChip(
+                          icon: Icons.people,
+                          label: '${widget.recipe.numberOfPeople}'),
                       const SizedBox(width: 12),
-                      _InfoChip(icon: Icons.schedule, label: '${widget.recipe.duration} min'),
+                      _InfoChip(
+                          icon: Icons.schedule,
+                          label: '${widget.recipe.duration} min'),
+                      const SizedBox(width: 12),
+                      _InfoChip(
+                          icon: Icons.thumb_up,
+                          label: '${widget.recipe.likes}'),
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Ingredientes
                   Text('Ingredients',
                       style: Theme.of(context)
                           .textTheme
@@ -160,17 +164,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Pasos
                   Text('Method',
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge
                           ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  ...widget.recipe.steps.asMap().entries.map(
-                        (entry) => _StepTile(number: entry.key + 1, text: entry.value),
-                  ),
+                  ...widget.recipe.steps
+                      .asMap()
+                      .entries
+                      .map((entry) =>
+                      _StepTile(number: entry.key + 1, text: entry.value)),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -185,8 +189,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
-
-  const _InfoChip({Key? key, required this.icon, required this.label}) : super(key: key);
+  const _InfoChip({Key? key, required this.icon, required this.label})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -201,8 +205,8 @@ class _InfoChip extends StatelessWidget {
 class _StepTile extends StatelessWidget {
   final int number;
   final String text;
-
-  const _StepTile({Key? key, required this.number, required this.text}) : super(key: key);
+  const _StepTile({Key? key, required this.number, required this.text})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +224,8 @@ class _StepTile extends StatelessWidget {
             radius: 12,
             backgroundColor: Colors.blueAccent,
             child: Text('$number',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                style:
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(text)),
