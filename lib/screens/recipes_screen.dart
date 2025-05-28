@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../widgets/search_input.dart';
 import '../model/recipe.dart';
+import 'recipe_detail_screen.dart'; // Asegúrate de tener esta pantalla creada
 
 class IniciScreen extends StatelessWidget {
   const IniciScreen({super.key});
@@ -55,72 +56,89 @@ class IniciScreen extends StatelessWidget {
                 final data = docs.first.data() as Map<String, dynamic>;
                 final recipe = Recipe.fromJson(data, docs.first.id);
 
-                return Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.white, // 🟢 Fondo blanco para mejor contraste
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                        child: Image.network(
-                          recipe.imageUrl,
-                          height: 180,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RecipeDetailScreen(recipe: recipe),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              recipe.title.isNotEmpty
-                                  ? recipe.title
-                                  : 'Recepta sense nom',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                          ),
+                          child: Image.network(
+                            recipe.imageUrl,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                recipe.title.isNotEmpty
+                                    ? recipe.title
+                                    : 'Recepta sense nom',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.people,
-                                    size: 16, color: Colors.black),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${recipe.numberOfPeople} persones',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: Colors.black),
+                                  color: Colors.black,
                                 ),
-                                const SizedBox(width: 12),
-                                const Icon(Icons.schedule,
-                                    size: 16, color: Colors.black),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${recipe.duration} min',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.people,
+                                      size: 16, color: Colors.black),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${recipe.numberOfPeople} persones',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(color: Colors.black),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Icon(Icons.schedule,
+                                      size: 16, color: Colors.black),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${recipe.duration} min',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(color: Colors.black),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },

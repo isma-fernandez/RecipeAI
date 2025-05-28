@@ -34,48 +34,64 @@ class FavoritesScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: docs.length,
             itemBuilder: (context, i) {
-              final doc = docs[i];
-              final data = doc.data() as Map<String, dynamic>;
+              final favDoc = docs[i];
+              final recipeId = favDoc.id;
 
-              // Construimos el modelo Recipe directamente
-              final recipe = Recipe.fromJson(data, doc.id);
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('recipes')
+                    .doc(recipeId)
+                    .snapshots(),
+                builder: (context, recipeSnapshot) {
+                  if (recipeSnapshot.connectionState == ConnectionState.waiting) {
+                    return const ListTile(title: Text('Cargando...'));
+                  }
 
-              return Card(
-                margin:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: recipe.imageUrl.isNotEmpty
-                      ? Image.network(
-                    recipe.imageUrl,
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                  )
-                      : const Icon(Icons.fastfood, size: 56),
-                  title: Text(recipe.title),
-                  subtitle: Text(
-                    data['addedAt'] != null
-                        ? (data['addedAt'] as Timestamp)
-                        .toDate()
-                        .toString()
-                        : '',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.thumb_up, size: 16),
-                      const SizedBox(width: 4),
-                      Text('${recipe.likes}'),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RecipeDetailScreen(recipe: recipe),
+                  if (!recipeSnapshot.hasData || !recipeSnapshot.data!.exists) {
+                    return const ListTile(title: Text('Receta no disponible'));
+                  }
+
+                  final recipeData =
+                  recipeSnapshot.data!.data() as Map<String, dynamic>;
+                  final recipe = Recipe.fromJson(recipeData, recipeId);
+
+                  final addedAt = favDoc['addedAt'] as Timestamp?;
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      leading: recipe.imageUrl.isNotEmpty
+                          ? Image.network(
+                        recipe.imageUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      )
+                          : const Icon(Icons.fastfood, size: 56),
+                      title: Text(recipe.title),
+                      subtitle: Text(
+                        addedAt != null
+                            ? addedAt.toDate().toString()
+                            : '',
                       ),
-                    );
-                  },
-                ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.thumb_up, size: 16),
+                          const SizedBox(width: 4),
+                          Text('${recipe.likes}'),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => RecipeDetailScreen(recipe: recipe),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               );
             },
           );

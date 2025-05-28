@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../model/recipe.dart';      // ⬅️  sigue igual
+import '../model/recipe.dart';
 import 'dart:async';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -18,26 +18,46 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   User? user;
   bool isFav = false;
   bool isLoading = true;
+  int likes = 0;
   late final StreamSubscription<User?> _authSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    _authSubscription =
-        FirebaseAuth.instance.authStateChanges().listen((usr) {
-          if (!mounted) return;
-          setState(() => user = usr);
+    likes = widget.recipe.likes;
 
-          if (usr != null) {
-            _checkIfFavorite(usr.uid);
-          } else {
-            setState(() {
-              isFav = false;
-              isLoading = false;
-            });
-          }
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((usr) {
+      if (!mounted) return;
+      setState(() => user = usr);
+
+      if (usr != null) {
+        _checkIfFavorite(usr.uid);
+      } else {
+        setState(() {
+          isFav = false;
+          isLoading = false;
         });
+      }
+    });
+
+    _subscribeToLikes();
+  }
+
+  void _subscribeToLikes() {
+    FirebaseFirestore.instance
+        .collection('recipes')
+        .doc(widget.recipe.id)
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted || !snapshot.exists) return;
+      final data = snapshot.data();
+      if (data != null && data.containsKey('likes')) {
+        setState(() {
+          likes = data['likes'] ?? 0;
+        });
+      }
+    });
   }
 
   @override
@@ -46,7 +66,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     super.dispose();
   }
 
-  /// 🔄  ahora usamos el id del documento, no el título
   Future<void> _checkIfFavorite(String uid) async {
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -71,8 +90,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         .collection('favorites')
         .doc(widget.recipe.id);
 
+    final recipeRef =
+    FirebaseFirestore.instance.collection('recipes').doc(widget.recipe.id);
+
+    final recipeSnapshot = await recipeRef.get();
+    final currentLikes = (recipeSnapshot.data()?['likes'] ?? 0) as int;
+
     if (isFav) {
       await favRef.delete();
+
+      if (currentLikes > 0) {
+        await recipeRef.update({'likes': FieldValue.increment(-1)});
+      } else {
+        await recipeRef.update({'likes': 0});
+      }
     } else {
       await favRef.set({
         'nombre_receta': widget.recipe.title,
@@ -83,6 +114,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         'ingredientes': widget.recipe.ingredients,
         'pasos_con_tiempo': widget.recipe.steps,
       });
+
+      await recipeRef.update({'likes': FieldValue.increment(1)});
     }
 
     if (!mounted) return;
@@ -90,8 +123,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-        Text(isFav ? 'Agregado a favoritos' : 'Eliminado de favoritos'),
+        content: Text(isFav ? 'Agregado a favoritos' : 'Eliminado de favoritos'),
       ),
     );
   }
@@ -141,7 +173,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       const SizedBox(width: 12),
                       _InfoChip(
                           icon: Icons.thumb_up,
-                          label: '${widget.recipe.likes}'),
+                          label: '$likes'),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -173,8 +205,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ...widget.recipe.steps
                       .asMap()
                       .entries
-                      .map((entry) =>
-                      _StepTile(number: entry.key + 1, text: entry.value)),
+                      .map((entry) => _StepTile(
+                    number: entry.key + 1,
+                    text: entry.value,
+                  )),
                   const SizedBox(height: 32),
                 ],
               ),

@@ -77,7 +77,7 @@ class _RootPageState extends State<RootPage> {
 
     final items = [
       const BottomNavigationBarItem(
-          icon: Icon(Icons.menu_book_rounded), label: 'Receptes'),
+          icon: Icon(Icons.menu_book_rounded), label: 'Inici'),
       const BottomNavigationBarItem(
           icon: Icon(Icons.star), label: 'Populars'),    // Platos populares
       const BottomNavigationBarItem(
