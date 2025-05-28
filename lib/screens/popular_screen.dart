@@ -4,14 +4,14 @@ import '../widgets/recipe_card.dart';
 import '../model/recipe.dart';
 
 class PopularScreen extends StatelessWidget {
-  const PopularScreen({Key? key}) : super(key: key);
+  const PopularScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Consulta los platos ordenados por número de vistas descendente (más populares primero)
+    // Stream de recetas populares ordenadas por número de vistas
     final recipesStream = FirebaseFirestore.instance
         .collection('recipes')
-        .orderBy('views', descending: true)
+        .orderBy('likes', descending: true)
         .limit(20)
         .snapshots();
 
@@ -28,7 +28,7 @@ class PopularScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: recipesStream,
@@ -36,51 +36,33 @@ class PopularScreen extends StatelessWidget {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text('No hi ha plats populars encara.'));
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error cargando recetas'));
                   }
-                  final recipes = snapshot.data!.docs.map((doc) {
+
+                  final docs = snapshot.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return const Center(child: Text('No hay recetas populares aún'));
+                  }
+
+                  final recipes = docs.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-
-                    final dataFromFirestore = {
-                      'nombre_receta': 'Tortilla de Patatas',
-                      'personas': 4,
-                      'tiempo_total': 45,
-                      'imagen': 'https://lacocinadefrabisa.lavozdegalicia.es/wp-content/uploads/2019/05/tortilla-espa%C3%B1ola.jpg',
-                      'ingredientes': [
-                        '4 huevos',
-                        '3 patatas medianas',
-                        '1 cebolla',
-                        'Aceite de oliva',
-                        'Sal'
-                      ],
-                      'pasos_con_tiempo': [
-                        'Pelar y cortar las patatas - 10 min',
-                        'Freír las patatas y cebolla - 15 min',
-                        'Batir los huevos - 5 min',
-                        'Mezclar todo y cocinar - 15 min'
-                      ],
-                      'likes': 27,
-                    };
-
-                    final documentId = 'abc123'; // Este es el ID del documento Firestore
-
-                    return Recipe.fromJson(dataFromFirestore, documentId);
+                    return Recipe.fromJson(data, doc.id);
                   }).toList();
 
-                  return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 3 / 4,
-                    ),
+                  return recipes.isNotEmpty
+                      ? ListView.builder(
                     itemCount: recipes.length,
-                    itemBuilder: (_, index) => RecipeCard(recipe: recipes[index]),
-                  );
+                    itemBuilder: (context, index) {
+                      final recipe = recipes[index];
+                      return RecipeCard(recipe: recipe);
+                    },
+                  )
+                      : const Center(child: Text('No hay recetas populares aún'));
                 },
               ),
             ),
+
           ],
         ),
       ),

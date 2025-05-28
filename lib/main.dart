@@ -21,7 +21,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
 }
 
 class RootPage extends StatefulWidget {
-  const RootPage({Key? key}) : super(key: key);
+  const RootPage({super.key});
   @override
   State<RootPage> createState() => _RootPageState();
 }
@@ -66,7 +66,7 @@ class _RootPageState extends State<RootPage> {
   Widget build(BuildContext context) {
     final loggedIn = FirebaseAuth.instance.currentUser != null;
     final pages = [
-      const RecipesScreen(),
+      const IniciScreen(),
       const PopularScreen(),
       const CameraScreen(),
       if (loggedIn) const HistoryScreen(),

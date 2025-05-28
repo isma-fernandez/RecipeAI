@@ -8,7 +8,7 @@ import 'dart:async';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
-  const RecipeDetailScreen({Key? key, required this.recipe}) : super(key: key);
+  const RecipeDetailScreen({super.key, required this.recipe});
 
   @override
   _RecipeDetailScreenState createState() => _RecipeDetailScreenState();
@@ -189,8 +189,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _InfoChip({Key? key, required this.icon, required this.label})
-      : super(key: key);
+  const _InfoChip({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -205,8 +204,7 @@ class _InfoChip extends StatelessWidget {
 class _StepTile extends StatelessWidget {
   final int number;
   final String text;
-  const _StepTile({Key? key, required this.number, required this.text})
-      : super(key: key);
+  const _StepTile({required this.number, required this.text});
 
   @override
   Widget build(BuildContext context) {

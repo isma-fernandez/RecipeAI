@@ -10,7 +10,7 @@ import 'package:recipeai/screens/recipe_detail_screen.dart';
 import '../model/recipe.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({Key? key}) : super(key: key);
+  const CameraScreen({super.key});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();

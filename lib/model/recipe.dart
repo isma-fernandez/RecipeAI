@@ -20,18 +20,23 @@ class Recipe {
     this.likes = 0,
   });
 
-  /// Construye el objeto desde Firestore
   factory Recipe.fromJson(Map<String, dynamic> json, String id) => Recipe(
     id: id,
-    title: json['nombre_receta'] as String,
-    numberOfPeople: (json['personas'] as num).toInt(),
-    duration: (json['tiempo_total'] as num).toInt(),
-    imageUrl: json['imagen'] as String,
-    ingredients:
-    List<String>.from(json['ingredientes'] as List<dynamic>),
-    steps: List<String>.from(json['pasos_con_tiempo'] as List<dynamic>),
+    title: (json['nombre_receta'] ?? '') as String,
+    numberOfPeople: (json['personas'] ?? 1) as int,
+    duration: (json['tiempo_total'] ?? 0) as int,
+    imageUrl: (json['imagen'] ?? '') as String,
+    ingredients: (json['ingredientes'] as List<dynamic>?)
+        ?.map((e) => e.toString())
+        .toList() ??
+        [],
+    steps: (json['pasos_con_tiempo'] as List<dynamic>?)
+        ?.map((e) => e.toString())
+        .toList() ??
+        [],
     likes: (json['likes'] ?? 0) as int,
   );
+
 
   /// Para escribir en Firestore
   Map<String, dynamic> toJson() => {
