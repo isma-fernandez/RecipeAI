@@ -1,19 +1,66 @@
+// lib/screens/recipes_screen.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../widgets/search_input.dart';
 import '../model/recipe.dart';
-import 'recipe_detail_screen.dart'; // Asegúrate de tener esta pantalla creada
+import 'recipe_detail_screen.dart';
 
-class IniciScreen extends StatelessWidget {
+class IniciScreen extends StatefulWidget {
   const IniciScreen({super.key});
 
   @override
+  State<IniciScreen> createState() => _IniciScreenState();
+}
+
+class _IniciScreenState extends State<IniciScreen> {
+  String searchQuery = '';
+  List<Recipe> allRecipes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAllRecipes();
+  }
+
+  Future<void> fetchAllRecipes() async {
+    final snapshot = await FirebaseFirestore.instance.collection('recipes').get();
+    final recipes = snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return Recipe.fromJson(data, doc.id);
+    }).toList();
+
+    setState(() {
+      allRecipes = recipes;
+    });
+  }
+
+  List<Recipe> get filteredRecipes {
+    if (searchQuery.isEmpty) {
+      // Mostrar receta con más likes
+      allRecipes.sort((a, b) => b.likes.compareTo(a.likes));
+      return allRecipes.isNotEmpty ? [allRecipes.first] : [];
+    }
+
+    return allRecipes.where((recipe) {
+      final query = searchQuery.toLowerCase();
+      final titleMatch = recipe.title.toLowerCase().contains(query);
+      final ingredientMatch = recipe.ingredients.any(
+            (ingredient) => ingredient.toLowerCase().contains(query),
+      );
+      return titleMatch || ingredientMatch;
+    }).toList();
+  }
+
+  void onSearchChanged(String value) {
+    setState(() {
+      searchQuery = value.trim();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final recipeQuery = FirebaseFirestore.instance
-        .collection('recipes')
-        .orderBy('likes', descending: true)
-        .limit(1)
-        .snapshots();
+    final results = filteredRecipes;
 
     return SafeArea(
       child: Padding(
@@ -29,120 +76,112 @@ class IniciScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const SearchInput(),
+            SearchInput(onChanged: onSearchChanged),
             const SizedBox(height: 24),
             Text(
-              'Recepta del dia',
+              searchQuery.isEmpty ? 'Recepta del dia' : 'Resultats de la cerca',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            StreamBuilder<QuerySnapshot>(
-              stream: recipeQuery,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return const Text('Error cargant la recepta');
-                }
-
-                final docs = snapshot.data?.docs ?? [];
-                if (docs.isEmpty) {
-                  return const Text('No hi ha receptes disponibles.');
-                }
-
-                final data = docs.first.data() as Map<String, dynamic>;
-                final recipe = Recipe.fromJson(data, docs.first.id);
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RecipeDetailScreen(recipe: recipe),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        )
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
+            if (results.isEmpty)
+              const Text('No hi ha resultats.')
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final recipe = results[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => RecipeDetailScreen(recipe: recipe),
                           ),
-                          child: Image.network(
-                            recipe.imageUrl,
-                            height: 180,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            )
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                recipe.title.isNotEmpty
-                                    ? recipe.title
-                                    : 'Recepta sense nom',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
+                              child: Image.network(
+                                recipe.imageUrl,
+                                height: 180,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.people,
-                                      size: 16, color: Colors.black),
-                                  const SizedBox(width: 4),
                                   Text(
-                                    '${recipe.numberOfPeople} persones',
+                                    recipe.title.isNotEmpty
+                                        ? recipe.title
+                                        : 'Recepta sense nom',
                                     style: Theme.of(context)
                                         .textTheme
-                                        .bodySmall
-                                        ?.copyWith(color: Colors.black),
+                                        .titleMedium
+                                        ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  const Icon(Icons.schedule,
-                                      size: 16, color: Colors.black),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${recipe.duration} min',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(color: Colors.black),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.people,
+                                          size: 16, color: Colors.black),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${recipe.numberOfPeople} persones',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(color: Colors.black),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Icon(Icons.schedule,
+                                          size: 16, color: Colors.black),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${recipe.duration} min',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(color: Colors.black),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),

@@ -1,11 +1,16 @@
+// lib/widgets/search_input.dart
+
 import 'package:flutter/material.dart';
 
 class SearchInput extends StatelessWidget {
-  const SearchInput({super.key});
+  final ValueChanged<String>? onChanged; // 👈 Añadido
+
+  const SearchInput({super.key, this.onChanged}); // 👈 Añadido
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      onChanged: onChanged, // 👈 Añadido
       decoration: InputDecoration(
         hintText: 'Cerca receptes, ingredients...',
         prefixIcon: const Icon(Icons.search),
@@ -17,6 +22,7 @@ class SearchInput extends StatelessWidget {
           borderSide: BorderSide.none,
         ),
       ),
+      style: const TextStyle(color: Colors.white),
     );
   }
 }
