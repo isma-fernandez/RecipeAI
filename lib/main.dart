@@ -67,33 +67,33 @@ class MyApp extends StatelessWidget {
       builder: (context, themeNotifier, fontScaleNotifier, accentColorNotifier, highContrastNotifier, child) {
         ThemeData baseTheme = themeNotifier.themeData;
         if (highContrastNotifier.highContrast) {
-          // Aplica colors vius i contrastats!
           baseTheme = baseTheme.copyWith(
             colorScheme: baseTheme.colorScheme.copyWith(
               background: themeNotifier.darkMode ? Colors.black : Colors.white,
-              onBackground: Colors.yellow,
+              onBackground: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
               primary: themeNotifier.darkMode ? Colors.white : Colors.black,
               secondary: Colors.yellowAccent,
-              surface: Colors.black,
-              onSurface: Colors.yellowAccent,
+              surface: themeNotifier.darkMode ? Colors.black : Colors.white,
+              onSurface: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
             ),
             textTheme: baseTheme.textTheme.copyWith(
               bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.yellowAccent,
+                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
               ),
               bodyMedium: baseTheme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.yellowAccent,
+                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
               ),
               titleLarge: baseTheme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.yellowAccent,
+                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
               ),
             ),
             switchTheme: baseTheme.switchTheme.copyWith(
               thumbColor: MaterialStateProperty.all(Colors.yellowAccent),
-              trackColor: MaterialStateProperty.all(Colors.black87),
+              trackColor: MaterialStateProperty.all(
+                  themeNotifier.darkMode ? Colors.black87 : Colors.grey[300]),
             ),
           );
         }
@@ -179,7 +179,6 @@ class _RootPageState extends State<RootPage> {
           icon: Icon(Icons.settings_outlined), label: 'Configuració'),
     ];
 
-    // Ajusta el índice si cambia el número de páginas
     _currentIndex = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(

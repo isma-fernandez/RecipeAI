@@ -18,7 +18,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool darkMode = true;
   double fontScale = 1.0;
-  String language = 'Español';
+  String language = 'Català';
   Color accentColor = Colors.blueAccent;
   bool highContrast = false;
   bool reduceMotion = false;
@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       darkMode = prefs.getBool('darkMode') ?? true;
       fontScale = prefs.getDouble('fontScale') ?? 1.0;
-      language = prefs.getString('language') ?? 'Español';
+      language = prefs.getString('language') ?? 'Català';
       accentColor = Color(prefs.getInt('accentColor') ?? Colors.blueAccent.value);
       highContrast = prefs.getBool('highContrast') ?? false;
       reduceMotion = prefs.getBool('reduceMotion') ?? false;
@@ -70,7 +70,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onSelected: (v) async {
                 setState(() => language = v);
                 await _savePreference('language', v);
-                // Aquí pots afegir la lògica de canvi d'idioma global
               },
             ),
           ),

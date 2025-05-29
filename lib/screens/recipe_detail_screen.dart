@@ -134,7 +134,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             expandedHeight: 250,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
@@ -228,7 +228,7 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      backgroundColor: Colors.grey.shade900,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       avatar: Icon(icon, size: 16),
       label: Text(label),
     );
@@ -238,6 +238,7 @@ class _InfoChip extends StatelessWidget {
 class _StepTile extends StatelessWidget {
   final int number;
   final String text;
+
   const _StepTile({required this.number, required this.text});
 
   @override
@@ -246,7 +247,9 @@ class _StepTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: Theme
+            .of(context)
+            .cardColor, // <--- Aquí el canvi important!
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -254,13 +257,32 @@ class _StepTile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 12,
-            backgroundColor: Colors.blueAccent,
-            child: Text('$number',
-                style:
-                const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            backgroundColor: Theme
+                .of(context)
+                .colorScheme
+                .secondary, // Accent color dinàmic!
+            child: Text(
+              '$number',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onSecondary, // Que es vegi bé!
+              ),
+            ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text)),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .bodyLarge, // Fa servir el color correcte
+            ),
+          ),
         ],
       ),
     );
