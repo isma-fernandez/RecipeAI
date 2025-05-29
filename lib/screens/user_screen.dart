@@ -14,6 +14,23 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  static const List<String> kAllergens = [
+    'Gluten',
+    'Crustacis',
+    'Ous',
+    'Peix',
+    'Cacauets',
+    'Soja',
+    'Llet',
+    'Fruits de closca',
+    'Api',
+    'Mostassa',
+    'Grans de sèsam',
+    'Diòxid de sofre i sulfits',
+    'Tramussos',
+    'Mol·luscs',
+  ];
+
   static const _bucketUrl = 'gs://airecipe-user-photos';
   static const _defaultAvatar =
       'https://storage.googleapis.com/airecipe-user-photos/default.png';
@@ -21,11 +38,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseStorage _bucket = FirebaseStorage.instanceFor(bucket: _bucketUrl);
 
   final _formKey = GlobalKey<FormState>();
-  final _allergyCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
 
   bool _uploading = false;
   String? _photoUrl;
+
+  Set<String> _selectedAllergens = {};
 
   User get _user => FirebaseAuth.instance.currentUser!;
   late final CollectionReference _users =
@@ -42,13 +60,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (snap.exists) {
       final data = snap.data() as Map<String, dynamic>;
       _photoUrl = data['photoUrl'];
-      _allergyCtrl.text = data['allergies'] ?? '';
+      _selectedAllergens = Set<String>.from(data['allergies'] ?? <String>[]);
       _nameCtrl.text = data['name'] ?? _user.displayName ?? '';
     } else {
       await _users.doc(_user.uid).set({
         'name': _user.displayName ?? '',
         'photoUrl': _defaultAvatar,
-        'allergies': '',
+        'allergies': [],
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -59,9 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final picked =
-    await picker.pickImage(source: ImageSource.gallery, maxWidth: 600);
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 600);
     if (picked == null) return;
     setState(() => _uploading = true);
     final ref = _bucket.ref('avatars/${_user.uid}.jpg');
@@ -77,10 +93,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
     await _users.doc(_user.uid).set({
       'name': _nameCtrl.text.trim(),
-      'allergies': _allergyCtrl.text.trim(),
+      'allergies': _selectedAllergens.toList(),
       'photoUrl': _photoUrl ?? _defaultAvatar,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -91,14 +106,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _openAllergenSelector() async {
+    final temp = Set<String>.from(_selectedAllergens);
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text('Selecciona al·lèrgens'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView(
+                children: kAllergens.map((a) {
+                  final checked = temp.contains(a);
+                  return CheckboxListTile(
+                    value: checked,
+                    title: Text(a),
+                    onChanged: (val) {
+                      setStateDialog(() {
+                        if (val == true) {
+                          temp.add(a);
+                        } else {
+                          temp.remove(a);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel·lar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _selectedAllergens = temp);
+                  Navigator.pop(context);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final imageToShow = _photoUrl ?? _defaultAvatar;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi perfil'),
+        title: const Text('El meu perfil'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -144,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextFormField(
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre',
+                  labelText: 'Nom',
                   prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
@@ -153,16 +216,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 initialValue: _user.email,
                 readOnly: true,
                 decoration: const InputDecoration(
-                  labelText: 'Correo',
+                  labelText: 'Correu',
                   prefixIcon: Icon(Icons.mail_outline),
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _allergyCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Alergias (separadas por comas)',
-                  prefixIcon: Icon(Icons.warning_amber_outlined),
+              InkWell(
+                onTap: _openAllergenSelector,
+                child: IgnorePointer(
+                  child: TextFormField(
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Al·lèrgens',
+                      prefixIcon: Icon(Icons.warning_amber_outlined),
+                    ),
+                    controller: TextEditingController(
+                      text: _selectedAllergens.join(', '),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

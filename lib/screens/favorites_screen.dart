@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 import '../model/recipe.dart';
 import 'recipe_detail_screen.dart';
@@ -71,7 +72,7 @@ class FavoritesScreen extends StatelessWidget {
                       title: Text(recipe.title),
                       subtitle: Text(
                         addedAt != null
-                            ? addedAt.toDate().toString()
+                            ? DateFormat('dd-MM-yyyy HH:mm').format(addedAt.toDate())
                             : '',
                       ),
                       trailing: Row(

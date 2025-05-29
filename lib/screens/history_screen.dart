@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -41,10 +43,9 @@ class HistoryScreen extends StatelessWidget {
                   title: Text(data['name'] ?? 'Receta'),
                   subtitle: Text(
                     data['timestamp'] != null
-                        ? (data['timestamp'] as Timestamp).toDate().toString()
+                        ? DateFormat('dd-MM-yyyy HH:mm').format((data['timestamp'] as Timestamp).toDate())
                         : '',
                   ),
-                  // onTap: () => // navegar a detalles si quieres,
                 ),
               );
             },

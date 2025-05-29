@@ -12,10 +12,10 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _nameCtrl  = TextEditingController();
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  final _pwdCtrl   = TextEditingController();
-  final _repPwdCtrl= TextEditingController();
+  final _pwdCtrl = TextEditingController();
+  final _repPwdCtrl = TextEditingController();
 
   bool _obscure = true;
 
@@ -40,22 +40,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'https://storage.googleapis.com/airecipe-user-photos/default.png';
       final uid = login.user!.uid;
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name'      : _nameCtrl.text.trim(),
-        'email'     : _emailCtrl.text.trim(),
-        'photoUrl'  : defaultFoto,
-        'allergies' : '',
-        'createdAt' : FieldValue.serverTimestamp(),
-        'updatedAt' : FieldValue.serverTimestamp(),
+        'name': _nameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'photoUrl': defaultFoto,
+        'allergies': '',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
-      Navigator.of(context).pop();            // vuelve al login
+      Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       var msg = switch (e.code) {
         'email-already-in-use' => 'Este correo ya está en uso',
-        'weak-password'        => 'Contraseña demasiado débil',
-        'invalid-email'        => 'Correo no válido',
-        _                      => 'Error: ${e.message}'
+        'weak-password' => 'Contraseña demasiado débil',
+        'invalid-email' => 'Correo no válido',
+        _ => 'Error: ${e.message}'
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
@@ -72,8 +72,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ListView(
             children: [
               const SizedBox(height: 24),
-
-              // Nombre
               TextFormField(
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
@@ -84,8 +82,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 (v == null || v.trim().length < 2) ? 'Introduce tu nombre' : null,
               ),
               const SizedBox(height: 16),
-
-              // Email
               TextFormField(
                 controller: _emailCtrl,
                 autocorrect: false,
@@ -102,8 +98,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Contraseña
               TextFormField(
                 controller: _pwdCtrl,
                 obscureText: _obscure,
@@ -119,8 +113,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 (v == null || v.length < 6) ? 'Mínimo 6 caracteres' : null,
               ),
               const SizedBox(height: 16),
-
-              // Repetir contraseña
               TextFormField(
                 controller: _repPwdCtrl,
                 obscureText: _obscure,
@@ -131,8 +123,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 validator: (v) => (v != _pwdCtrl.text) ? 'No coincide' : null,
               ),
               const SizedBox(height: 32),
-
-              // Botón Crear cuent
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

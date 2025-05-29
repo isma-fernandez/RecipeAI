@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,13 +22,25 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late Future<void> _initializeControllerFuture;
   late CameraController _controller;
-  XFile? _previewFile;                    // miniatura mostrada
+  XFile? _previewFile;
   bool _isProcessing = false;
+
+  /* alérgenos del usuario */
+  Set<String> _userAllergens = {};
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _loadUserAllergens();
+  }
+
+  Future<void> _loadUserAllergens() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final snap =
+    await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final list = snap.data()?['allergies'] as List<dynamic>? ?? [];
+    _userAllergens = list.map((e) => e.toString()).toSet();
   }
 
   Future<void> _initializeCamera() async {
@@ -35,7 +49,8 @@ class _CameraScreenState extends State<CameraScreen> {
           (c) => c.lensDirection == CameraLensDirection.back,
       orElse: () => cams.first,
     );
-    _controller = CameraController(back, ResolutionPreset.medium, enableAudio: false);
+    _controller =
+        CameraController(back, ResolutionPreset.medium, enableAudio: false);
     _initializeControllerFuture = _controller.initialize();
     setState(() {});
   }
@@ -46,7 +61,7 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  /* ───────────────  CAPTURA O GALERÍA  ─────────────── */
+  /* ────────── captura o galería ────────── */
 
   Future<void> _shoot() async {
     await _initializeControllerFuture;
@@ -61,20 +76,54 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _handleSelectedFile(XFile raw) async {
     setState(() {
-      _previewFile  = raw;
+      _previewFile = raw;
       _isProcessing = true;
     });
 
     try {
-      // copia a tmp (necesario p/galería en iOS)
-      final tmpDir   = await getTemporaryDirectory();
-      final tmpPath  = '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final tmpDir = await getTemporaryDirectory();
+      final tmpPath =
+          '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       await raw.saveTo(tmpPath);
-      final local    = XFile(tmpPath);
+      final local = XFile(tmpPath);
 
-      final gcsUri   = await _uploadToStorage(local);
-      final json     = await _callGenRecipe(gcsUri);
-      final recipe   = Recipe.fromJson(json, json['id'] as String);
+      final gcsUri = await _uploadToStorage(local);
+      final json = await _callGenRecipe(gcsUri);
+      final recipe = Recipe.fromJson(json, json['id'] as String);
+
+      /* aviso de alérgenos */
+      if (_userAllergens.isNotEmpty &&
+          recipe.alergenos.any(_userAllergens.contains)) {
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Atenció'),
+              content: Text(
+                'Aquesta recepta conté algun dels teus al·lèrgens:\n'
+                    '${recipe.alergenos.where(_userAllergens.contains).join(', ')}',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('history')
+          .add({
+        'name': recipe.title,
+        'imageUrl': recipe.imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       if (!mounted) return;
       Navigator.push(
@@ -83,14 +132,15 @@ class _CameraScreenState extends State<CameraScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  /* ───────────────  BACKEND  ─────────────── */
+  /* ────────── backend ────────── */
 
   Future<String> _uploadToStorage(XFile file) async {
     final ref = FirebaseStorage.instance
@@ -101,7 +151,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<Map<String, dynamic>> _callGenRecipe(String gcsUri) async {
     final functions = FirebaseFunctions.instanceFor(region: 'europe-west2');
-    final callable  = functions.httpsCallable(
+    final callable = functions.httpsCallable(
       'genRecipe',
       options: HttpsCallableOptions(timeout: const Duration(minutes: 4)),
     );
@@ -109,14 +159,14 @@ class _CameraScreenState extends State<CameraScreen> {
     return Map<String, dynamic>.from(result.data as Map);
   }
 
-  /* ───────────────  UI  ─────────────── */
+  /* ────────── UI ────────── */
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder(
         future: _initializeControllerFuture,
-        builder: (context, snap) {
+        builder: (_, snap) {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -124,8 +174,6 @@ class _CameraScreenState extends State<CameraScreen> {
           return Stack(
             children: [
               Positioned.fill(child: CameraPreview(_controller)),
-
-              // botón cámara
               Positioned(
                 bottom: 40,
                 left: MediaQuery.of(context).size.width * .2,
@@ -134,8 +182,6 @@ class _CameraScreenState extends State<CameraScreen> {
                   onTap: _isProcessing ? null : _shoot,
                 ),
               ),
-
-              // botón galería
               Positioned(
                 bottom: 40,
                 right: MediaQuery.of(context).size.width * .2,
@@ -144,8 +190,6 @@ class _CameraScreenState extends State<CameraScreen> {
                   onTap: _isProcessing ? null : _pickFromGallery,
                 ),
               ),
-
-              // miniatura debug
               if (_previewFile != null)
                 Positioned(
                   top: 40,
@@ -163,8 +207,6 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-
-              // overlay carga
               if (_isProcessing)
                 const Positioned.fill(
                   child: ColoredBox(
@@ -202,8 +244,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
-/* ───────────────  WIDGET BOTÓN REDONDO  ─────────────── */
-
+/* ────────── botón redondo ────────── */
 class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;

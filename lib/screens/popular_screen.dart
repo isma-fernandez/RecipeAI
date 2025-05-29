@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/recipe_card.dart';
 import '../model/recipe.dart';
 
-class PopularScreen extends StatelessWidget {
+class PopularScreen extends StatefulWidget {
   const PopularScreen({super.key});
 
   @override
+  State<PopularScreen> createState() => _PopularScreenState();
+}
+
+class _PopularScreenState extends State<PopularScreen> {
+  Set<String> _userAllergens = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllergens();
+  }
+
+  Future<void> _loadAllergens() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final snap =
+    await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final list = snap.data()?['allergies'] as List<dynamic>? ?? [];
+    setState(() => _userAllergens = list.map((e) => e.toString()).toSet());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Stream de recetas populares ordenadas por número de vistas
     final recipesStream = FirebaseFirestore.instance
         .collection('recipes')
         .orderBy('likes', descending: true)
@@ -22,12 +43,10 @@ class PopularScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            Text(
-              'Plats més populars',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text('Plats més populars',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                )),
             const SizedBox(height: 12),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -36,33 +55,29 @@ class PopularScreen extends StatelessWidget {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error cargando recetas'));
-                  }
-
                   final docs = snapshot.data?.docs ?? [];
-                  if (docs.isEmpty) {
-                    return const Center(child: Text('No hay recetas populares aún'));
+
+                  final recipes = docs.map((d) {
+                    final r = Recipe.fromJson(d.data() as Map<String, dynamic>, d.id);
+                    return r;
+                  }).where((r) => _userAllergens.isEmpty ||
+                      r.alergenos.every((a) => !_userAllergens.contains(a))).toList();
+
+                  if (recipes.isEmpty) {
+                    return const Center(child: Text('No hi ha receptes populars.'));
                   }
 
-                  final recipes = docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    return Recipe.fromJson(data, doc.id);
-                  }).toList();
-
-                  return recipes.isNotEmpty
-                      ? ListView.builder(
+                  return ListView.builder(
                     itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      final recipe = recipes[index];
-                      return RecipeCard(recipe: recipe);
-                    },
-                  )
-                      : const Center(child: Text('No hay recetas populares aún'));
+                    itemBuilder: (_, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: RecipeCard(recipe: recipes[i]),
+                    ),
+
+                  );
                 },
               ),
             ),
-
           ],
         ),
       ),
