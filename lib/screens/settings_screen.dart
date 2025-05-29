@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../font_scale_notifier.dart';
+import '../main.dart'; // Per ThemeNotifier
+import '../accent_color_notifier.dart';
+import '../high_contrast_notifier.dart';
+import '../reduce_motion_notifier.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,21 +17,43 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool darkMode = true;
-  bool highContrast = false;
-  bool reduceMotion = false;
-  bool pushNotifications = true;
-  bool cookingReminders = false;
-  bool useMobileData = true;
-  bool autoUploadPhotos = false;
   double fontScale = 1.0;
   String language = 'Español';
   Color accentColor = Colors.blueAccent;
+  bool highContrast = false;
+  bool reduceMotion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      darkMode = prefs.getBool('darkMode') ?? true;
+      fontScale = prefs.getDouble('fontScale') ?? 1.0;
+      language = prefs.getString('language') ?? 'Español';
+      accentColor = Color(prefs.getInt('accentColor') ?? Colors.blueAccent.value);
+      highContrast = prefs.getBool('highContrast') ?? false;
+      reduceMotion = prefs.getBool('reduceMotion') ?? false;
+    });
+  }
+
+  Future<void> _savePreference(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is bool) prefs.setBool(key, value);
+    if (value is String) prefs.setString(key, value);
+    if (value is double) prefs.setDouble(key, value);
+    if (value is int) prefs.setInt(key, value);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración'),
+        title: const Text('Configuració'),
         centerTitle: true,
       ),
       body: ListView(
@@ -35,106 +65,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(language),
             onTap: () => _showOptionsDialog(
               title: 'Selecciona idioma',
-              options: const ['Español', 'English', 'Català', 'Français'],
+              options: const ['Català'],
               selected: language,
-              onSelected: (v) => setState(() => language = v),
+              onSelected: (v) async {
+                setState(() => language = v);
+                await _savePreference('language', v);
+                // Aquí pots afegir la lògica de canvi d'idioma global
+              },
             ),
           ),
-          _buildSectionTitle('Apariencia'),
+          _buildSectionTitle('Aparença'),
           SwitchListTile(
             value: darkMode,
-            onChanged: (v) => setState(() => darkMode = v),
-            title: const Text('Tema oscuro'),
+            onChanged: (v) async {
+              setState(() => darkMode = v);
+              await _savePreference('darkMode', v);
+              Provider.of<ThemeNotifier>(context, listen: false).setDarkMode(v);
+            },
+            title: const Text('Tema fosc'),
             secondary: const Icon(Icons.dark_mode),
           ),
           ListTile(
             leading: const Icon(Icons.color_lens),
-            title: const Text('Color de acento'),
-            subtitle: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: accentColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white24),
+            title: const Text('Color d’accent'),
+            subtitle: Consumer<AccentColorNotifier>(
+              builder: (context, accentNotifier, _) => Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: accentNotifier.accentColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                ),
               ),
             ),
-            onTap: () => _showColorPicker(),
+            onTap: () => _showColorPicker(context),
           ),
           ListTile(
             leading: const Icon(Icons.format_size),
-            title: const Text('Tamaño de fuente'),
+            title: const Text('Mida de lletra'),
             subtitle: Slider(
               value: fontScale,
               min: 0.8,
               max: 1.4,
               divisions: 6,
               label: '${(fontScale * 100).round()} %',
-              onChanged: (v) => setState(() => fontScale = v),
+              onChanged: (v) {
+                setState(() => fontScale = v);
+                _savePreference('fontScale', v);
+                Provider.of<FontScaleNotifier>(context, listen: false).setFontScale(v);
+              },
             ),
           ),
-
-          _buildSectionTitle('Accesibilidad'),
-          SwitchListTile(
-            value: highContrast,
-            onChanged: (v) => setState(() => highContrast = v),
-            title: const Text('Alto contraste'),
-            secondary: const Icon(Icons.contrast),
+          _buildSectionTitle('Accessibilitat'),
+          Consumer<HighContrastNotifier>(
+            builder: (context, highContrastNotifier, _) => SwitchListTile(
+              value: highContrastNotifier.highContrast,
+              onChanged: (v) async {
+                highContrastNotifier.setHighContrast(v);
+                await _savePreference('highContrast', v);
+              },
+              title: const Text('Alt contrast'),
+              secondary: const Icon(Icons.contrast),
+            ),
           ),
-          SwitchListTile(
-            value: reduceMotion,
-            onChanged: (v) => setState(() => reduceMotion = v),
-            title: const Text('Reducir animaciones'),
-            secondary: const Icon(Icons.motion_photos_off),
+          Consumer<ReduceMotionNotifier>(
+            builder: (context, reduceMotionNotifier, _) => SwitchListTile(
+              value: reduceMotionNotifier.reduceMotion,
+              onChanged: (v) async {
+                reduceMotionNotifier.setReduceMotion(v);
+                await _savePreference('reduceMotion', v);
+              },
+              title: const Text('Reduir animacions'),
+              secondary: const Icon(Icons.motion_photos_off),
+            ),
           ),
-
-          _buildSectionTitle('Notificaciones'),
-          SwitchListTile(
-            value: pushNotifications,
-            onChanged: (v) => setState(() => pushNotifications = v),
-            title: const Text('Notificaciones push'),
-            secondary: const Icon(Icons.notifications),
-          ),
-          SwitchListTile(
-            value: cookingReminders,
-            onChanged: (v) => setState(() => cookingReminders = v),
-            title: const Text('Recordatorios de cocción'),
-            subtitle: const Text('Recibe avisos cuando termine el tiempo de horno'),
-            secondary: const Icon(Icons.timer),
-          ),
-
-          _buildSectionTitle('Datos y almacenamiento'),
-          SwitchListTile(
-            value: useMobileData,
-            onChanged: (v) => setState(() => useMobileData = v),
-            title: const Text('Usar datos móviles'),
-            secondary: const Icon(Icons.signal_cellular_alt),
-          ),
-          SwitchListTile(
-            value: autoUploadPhotos,
-            onChanged: (v) => setState(() => autoUploadPhotos = v),
-            title: const Text('Subir fotos automáticamente'),
-            subtitle: const Text('Se enviarán a la nube para analizar ingredientes'),
-            secondary: const Icon(Icons.cloud_upload_outlined),
-          ),
-
-          _buildSectionTitle('Acerca de'),
+          _buildSectionTitle('Sobre l’app'),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('Versión'),
+            title: const Text('Versió'),
             subtitle: const Text('1.0.0'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: const Text('Términos y privacidad'),
-            onTap: () {
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.star_rate_outlined),
-            title: const Text('Dejar valoración'),
-            onTap: () {
-            },
           ),
           const SizedBox(height: 24),
         ],
@@ -147,8 +157,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSectionTitle(String title) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
     child: Text(title,
-        style:
-        Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.bold)),
   );
 
   Future<void> _showOptionsDialog({
@@ -181,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _showColorPicker() async {
+  Future<void> _showColorPicker(BuildContext context) async {
     final colors = [
       Colors.blueAccent,
       Colors.redAccent,
@@ -190,6 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Colors.orangeAccent,
       Colors.tealAccent,
     ];
+    final accentNotifier = Provider.of<AccentColorNotifier>(context, listen: false);
 
     await showModalBottomSheet(
       context: context,
@@ -205,8 +218,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: colors
               .map(
                 (c) => GestureDetector(
-              onTap: () {
+              onTap: () async {
                 setState(() => accentColor = c);
+                accentNotifier.setAccentColor(c);
+                await _savePreference('accentColor', c.value);
                 Navigator.of(context).pop();
               },
               child: Container(
@@ -216,7 +231,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: c,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: c == accentColor ? Colors.white : Colors.transparent,
+                    color: c == accentNotifier.accentColor
+                        ? Colors.white
+                        : Colors.transparent,
                     width: 3,
                   ),
                 ),
