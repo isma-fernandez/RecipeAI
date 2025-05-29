@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"ia-recipe-project","appId":"1:852447269000:android:652b5d907fea2fe1d8cf3d","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"ia-recipe-project","configurations":{"android":"1:852447269000:android:652b5d907fea2fe1d8cf3d","ios":"1:852447269000:ios:43cef6156280081dd8cf3d","macos":"1:852447269000:ios:43cef6156280081dd8cf3d","web":"1:852447269000:web:3937931e8033f4d8d8cf3d","windows":"1:852447269000:web:e985ca8a6222a806d8cf3d"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "ia-recipe-project",
+          "appId": "1:852447269000:android:652b5d907fea2fe1d8cf3d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ia-recipe-project",
+          "configurations": {
+            "android": "1:852447269000:android:652b5d907fea2fe1d8cf3d",
+            "ios": "1:852447269000:ios:43cef6156280081dd8cf3d",
+            "macos": "1:852447269000:ios:43cef6156280081dd8cf3d",
+            "web": "1:852447269000:web:3937931e8033f4d8d8cf3d",
+            "windows": "1:852447269000:web:e985ca8a6222a806d8cf3d"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

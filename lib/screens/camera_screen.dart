@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:recipeai/screens/recipe_detail_screen.dart';
 
@@ -19,10 +20,8 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late Future<void> _initializeControllerFuture;
   late CameraController _controller;
-  XFile? _capturedFile;
-
+  XFile? _previewFile;                    // miniatura mostrada
   bool _isProcessing = false;
-  Recipe? _recipeResult;             // receta recibida
 
   @override
   void initState() {
@@ -31,16 +30,12 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    final backCam = cameras.firstWhere(
-          (camera) => camera.lensDirection == CameraLensDirection.back,
-      orElse: () => cameras.first,
+    final cams = await availableCameras();
+    final back = cams.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.back,
+      orElse: () => cams.first,
     );
-    _controller = CameraController(
-      backCam,
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
+    _controller = CameraController(back, ResolutionPreset.medium, enableAudio: false);
     _initializeControllerFuture = _controller.initialize();
     setState(() {});
   }
@@ -51,124 +46,116 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  // ───────────────────────── FOTO + BACKEND ──────────────────────────
+  /* ───────────────  CAPTURA O GALERÍA  ─────────────── */
 
-  Future<void> _takePicture() async {
+  Future<void> _shoot() async {
+    await _initializeControllerFuture;
+    final raw = await _controller.takePicture();
+    await _handleSelectedFile(raw);
+  }
+
+  Future<void> _pickFromGallery() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) await _handleSelectedFile(picked);
+  }
+
+  Future<void> _handleSelectedFile(XFile raw) async {
+    setState(() {
+      _previewFile  = raw;
+      _isProcessing = true;
+    });
+
     try {
-      await _initializeControllerFuture;
-      final file = await _controller.takePicture();
+      // copia a tmp (necesario p/galería en iOS)
+      final tmpDir   = await getTemporaryDirectory();
+      final tmpPath  = '${tmpDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await raw.saveTo(tmpPath);
+      final local    = XFile(tmpPath);
 
-      // Guarda una copia temporal
-      final dir = await getTemporaryDirectory();
-      final localPath = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await file.saveTo(localPath);
-      final localFile = XFile(localPath);
+      final gcsUri   = await _uploadToStorage(local);
+      final json     = await _callGenRecipe(gcsUri);
+      final recipe   = Recipe.fromJson(json, json['id'] as String);
 
-      setState(() {
-        _capturedFile = localFile;
-        _isProcessing = true;
-      });
-
-      // Sube a Storage y obtén URI
-      final gcsUri = await _uploadToStorage(localFile);
-
-      //Pide la receta (la Cloud Function evita duplicados y/o los devuelve)
-      final json = await _callGenRecipe(gcsUri);
-
-      //Convierte a modelo
-      final recipe = Recipe.fromJson(json, json['id'] as String);
-
-      // navega directamente al detalle
-          if (!mounted) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RecipeDetailScreen(recipe: recipe),
-            ),
-          );
-
-
-      setState(() {
-        _recipeResult = recipe;
-        _isProcessing = false;
-      });
-
-      // quitar
-      _showRecipeDialog(recipe);
-    } catch (e) {
-      setState(() => _isProcessing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipe: recipe)),
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  /// Subir la foto
+  /* ───────────────  BACKEND  ─────────────── */
+
   Future<String> _uploadToStorage(XFile file) async {
-    // Usa un nombre único
     final ref = FirebaseStorage.instance
-        .ref()
-        .child('photos')
-        .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+        .ref('photos/${DateTime.now().millisecondsSinceEpoch}.jpg');
     await ref.putFile(File(file.path));
     return 'gs://${ref.bucket}/${ref.fullPath}';
   }
 
-  /// Llama a la Cloud Function genRecipe y devuelve el JSON de receta
   Future<Map<String, dynamic>> _callGenRecipe(String gcsUri) async {
-    final callable = FirebaseFunctions.instance.httpsCallable('genRecipe');
-    final result = await callable.call(<String, dynamic>{'gcsUri': gcsUri});
-    // La función ya guarda/lee de Firestore y añade el documentId como 'id'
+    final functions = FirebaseFunctions.instanceFor(region: 'europe-west2');
+    final callable  = functions.httpsCallable(
+      'genRecipe',
+      options: HttpsCallableOptions(timeout: const Duration(minutes: 4)),
+    );
+    final result = await callable.call({'gcsUri': gcsUri});
     return Map<String, dynamic>.from(result.data as Map);
   }
 
-  // ──────────────────────────── UI ──────────────────────────────
+  /* ───────────────  UI  ─────────────── */
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder(
         future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
+
           return Stack(
             children: [
               Positioned.fill(child: CameraPreview(_controller)),
 
-              // Botón disparo
+              // botón cámara
               Positioned(
                 bottom: 40,
-                left: 0,
-                right: 0,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: GestureDetector(
-                    onTap: _isProcessing ? null : _takePicture,
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                    ),
-                  ),
+                left: MediaQuery.of(context).size.width * .2,
+                child: _CircleButton(
+                  icon: Icons.camera_alt,
+                  onTap: _isProcessing ? null : _shoot,
                 ),
               ),
 
-              // Miniatura de foto capturada (debug)
-              if (_capturedFile != null)
+              // botón galería
+              Positioned(
+                bottom: 40,
+                right: MediaQuery.of(context).size.width * .2,
+                child: _CircleButton(
+                  icon: Icons.photo_library,
+                  onTap: _isProcessing ? null : _pickFromGallery,
+                ),
+              ),
+
+              // miniatura debug
+              if (_previewFile != null)
                 Positioned(
-                  bottom: 40,
+                  top: 40,
                   right: 20,
                   child: GestureDetector(
-                    onTap: () => _showPreview(context, _capturedFile!),
+                    onTap: () => _showPreview(_previewFile!),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                       child: Image.file(
-                        File(_capturedFile!.path),
+                        File(_previewFile!.path),
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
@@ -177,12 +164,12 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
 
-              // Overlay de carga
+              // overlay carga
               if (_isProcessing)
-                Positioned.fill(
-                  child: Container(
+                const Positioned.fill(
+                  child: ColoredBox(
                     color: Colors.black45,
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 ),
             ],
@@ -192,7 +179,7 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void _showPreview(BuildContext context, XFile file) {
+  void _showPreview(XFile file) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -213,35 +200,28 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
     );
   }
+}
 
-  void _showRecipeDialog(Recipe recipe) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(recipe.title),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Image.network(recipe.imageUrl),
-              const SizedBox(height: 8),
-              Text('Personas: ${recipe.numberOfPeople}'),
-              Text('Tiempo total: ${recipe.duration} min'),
-              const SizedBox(height: 8),
-              const Text('Ingredientes:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...recipe.ingredients.map(Text.new),
-              const SizedBox(height: 8),
-              const Text('Pasos:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...recipe.steps.map(Text.new),
-            ],
-          ),
+/* ───────────────  WIDGET BOTÓN REDONDO  ─────────────── */
+
+class _CircleButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _CircleButton({required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 70,
+        height: 70,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(width: 4, color: Colors.white),
+          color: Colors.black54,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
-          ),
-        ],
+        child: Icon(icon, size: 32, color: Colors.white),
       ),
     );
   }
