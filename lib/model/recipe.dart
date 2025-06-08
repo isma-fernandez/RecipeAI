@@ -3,11 +3,11 @@ class Recipe {
   final String id;               // id de Firestore
   final String title;            // nombre_receta
   final int numberOfPeople;      // personas
-  final int duration;            // tiempo_total (min)
+  final int duration;            // tiempo_total
   final String imageUrl;         // imagen
   final List<String> ingredients;
   final List<String> steps;      // pasos_con_tiempo
-  final List<String> alergenos;  // ← NUEVO
+  final List<String> alergenos;
   int likes;
 
   Recipe({
@@ -29,15 +29,9 @@ class Recipe {
     numberOfPeople: (json['personas'] ?? 1) as int,
     duration: (json['tiempo_total'] ?? 0) as int,
     imageUrl: (json['imagen'] ?? '') as String,
-    ingredients: (json['ingredientes'] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList(),
-    steps: (json['pasos_con_tiempo'] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList(),
-    alergenos: (json['alergenos'] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList(),
+    ingredients: (json['ingredientes'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+    steps: (json['pasos_con_tiempo'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
+    alergenos: (json['alergenos'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
     likes: (json['likes'] ?? 0) as int,
   );
 

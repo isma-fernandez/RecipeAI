@@ -4,19 +4,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _pwdCtrl = TextEditingController();
   final _repPwdCtrl = TextEditingController();
-
   bool _obscure = true;
 
   @override
@@ -28,17 +25,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Registre d’usuari i creació al Firestore
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
     try {
       final login = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _pwdCtrl.text.trim(),
-      );
-      const defaultFoto =
-          'https://storage.googleapis.com/airecipe-user-photos/default.png';
+          email: _emailCtrl.text.trim(), password: _pwdCtrl.text.trim());
+      const defaultFoto = 'https://storage.googleapis.com/airecipe-user-photos/default.png';
       final uid = login.user!.uid;
+
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -49,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // Torna enrere després de registrar
     } on FirebaseAuthException catch (e) {
       var msg = switch (e.code) {
         'email-already-in-use' => 'Este correo ya está en uso',
@@ -72,24 +67,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ListView(
             children: [
               const SizedBox(height: 24),
+              // Camp de nom
               TextFormField(
                 controller: _nameCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().length < 2) ? 'Introduce tu nombre' : null,
+                    labelText: 'Nombre', prefixIcon: Icon(Icons.person_outline)),
+                validator: (v) => (v == null || v.trim().length < 2)
+                    ? 'Introduce tu nombre' : null,
               ),
               const SizedBox(height: 16),
+              // Correu electrònic
               TextFormField(
                 controller: _emailCtrl,
                 autocorrect: false,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: Icon(Icons.mail_outline),
-                ),
+                    labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline)),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Introduce tu correo';
                   final regex = RegExp(r'.+@.+\..+');
@@ -98,6 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              // Contrasenya
               TextFormField(
                 controller: _pwdCtrl,
                 obscureText: _obscure,
@@ -113,16 +107,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 (v == null || v.length < 6) ? 'Mínimo 6 caracteres' : null,
               ),
               const SizedBox(height: 16),
+              // Repetir contrasenya
               TextFormField(
                 controller: _repPwdCtrl,
                 obscureText: _obscure,
                 decoration: const InputDecoration(
-                  labelText: 'Repite la contraseña',
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
+                    labelText: 'Repite la contraseña', prefixIcon: Icon(Icons.lock_outline)),
                 validator: (v) => (v != _pwdCtrl.text) ? 'No coincide' : null,
               ),
               const SizedBox(height: 32),
+              // Botó de registre
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

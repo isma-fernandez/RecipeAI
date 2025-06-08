@@ -4,23 +4,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _pwdCtrl = TextEditingController();
-  bool _obscure = true;
+  final _formKey = GlobalKey<FormState>(); // clau per validar el formulari
+  final _emailCtrl = TextEditingController(); // controlador de l’email
+  final _pwdCtrl = TextEditingController(); // controlador de la contrasenya
+  bool _obscure = true; // mostrar o amagar la contrasenya
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _pwdCtrl.dispose();
-    super.dispose();
+    _emailCtrl.dispose(); _pwdCtrl.dispose(); super.dispose();
   }
+
+  // intenta iniciar sessió amb les credencials donades
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     try {
@@ -28,25 +27,17 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailCtrl.text.trim(),
         password: _pwdCtrl.text.trim(),
       );
-      // Login exitoso, redirige (de momento mensaje solo)
+      // sessió iniciada correctament → avís
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sesión iniciada correctamente')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sesión iniciada correctamente')));
     } on FirebaseAuthException catch (e) {
+      // gestió d’errors comuns de Firebase Auth
       String msg;
       switch (e.code) {
-        case 'invalid-credential':
-          msg = 'Credenciales inválidas. Verifica tu correo y contraseña.';
-          break;
-        case 'user-not-found':
-          msg = 'No existe ningún usuario con ese correo.';
-          break;
-        case 'wrong-password':
-          msg = 'Contraseña incorrecta.';
-          break;
-        default:
-          msg = 'Error inesperado: ${e.message}';
+        case 'invalid-credential': msg = 'Credenciales inválidas. Verifica tu correo y contraseña.'; break;
+        case 'user-not-found': msg = 'No existe ningún usuario con ese correo.'; break;
+        case 'wrong-password': msg = 'Contraseña incorrecta.'; break;
+        default: msg = 'Error inesperado: ${e.message}';
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
@@ -63,21 +54,17 @@ class _LoginScreenState extends State<LoginScreen> {
           child: ListView(
             children: [
               const SizedBox(height: 32),
-              // Logo / título de la app
+              // icona + títol de l’app
               Icon(Icons.menu_book, size: 72, color: Theme.of(context).colorScheme.secondary),
               const SizedBox(height: 24),
-              Text('RecipeAI', textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium),
+              Text('RecipeAI', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 48),
-              // Email
+              // input de correu electrònic
               TextFormField(
                 controller: _emailCtrl,
                 autocorrect: false,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: Icon(Icons.mail_outline),
-                ),
+                decoration: const InputDecoration(labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline)),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Introduce tu correo';
                   final regex = RegExp(r'.+@.+\..+');
@@ -86,8 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              //Contraseña
+              // input de contrasenya amb opció d’amagar/mostrar
               TextFormField(
                 controller: _pwdCtrl,
                 obscureText: _obscure,
@@ -99,13 +85,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
-                validator: (v) => (v == null || v.length < 6)
-                    ? 'Mínimo 6 caracteres'
-                    : null,
+                validator: (v) => (v == null || v.length < 6) ? 'Mínimo 6 caracteres' : null,
               ),
               const SizedBox(height: 32),
-
-              // login
+              // botó per iniciar sessió
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -116,22 +99,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-
-              // Links inferiores
+              // enllaços auxiliars: recuperar contrasenya o registrar-se
               TextButton(
                 onPressed: () {
-                  // future: reset de contraseña
-                  // TODO: peta ns porque
-                  // await FirebaseAuth.instance
-                  //     .sendPasswordResetEmail(email: _emailCtrl.text.trim());
+                  // funcionalitat pendent: reset contrasenya
                 },
                 child: const Text('¿Has olvidado la contraseña?'),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                  );
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
                 },
                 child: const Text("¿No tienes cuenta? Regístrate"),
               ),

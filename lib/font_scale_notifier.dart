@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Notificador per gestionar l’escala de lletra de l’app
 class FontScaleNotifier extends ChangeNotifier {
   double _fontScale;
   FontScaleNotifier(this._fontScale);
@@ -8,6 +9,6 @@ class FontScaleNotifier extends ChangeNotifier {
 
   void setFontScale(double v) {
     _fontScale = v;
-    notifyListeners();
+    notifyListeners(); // 🔄 Notifica els widgets que escolten
   }
 }

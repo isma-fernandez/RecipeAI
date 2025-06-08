@@ -18,15 +18,12 @@ import 'accent_color_notifier.dart';
 import 'high_contrast_notifier.dart';
 import 'reduce_motion_notifier.dart';
 
+// Tema global configurable
 class ThemeNotifier extends ChangeNotifier {
   bool _darkMode;
   ThemeNotifier(this._darkMode);
-
   bool get darkMode => _darkMode;
-
-  ThemeData get themeData =>
-      _darkMode ? ThemeData.dark() : ThemeData.light();
-
+  ThemeData get themeData => _darkMode ? ThemeData.dark() : ThemeData.light();
   void setDarkMode(bool value) {
     _darkMode = value;
     notifyListeners();
@@ -35,9 +32,7 @@ class ThemeNotifier extends ChangeNotifier {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('darkMode') ?? true;
   final fontScale = prefs.getDouble('fontScale') ?? 1.0;
@@ -45,18 +40,13 @@ void main() async {
   final highContrast = prefs.getBool('highContrast') ?? false;
   final reduceMotion = prefs.getBool('reduceMotion') ?? false;
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeNotifier(isDark)),
-        ChangeNotifierProvider(create: (_) => FontScaleNotifier(fontScale)),
-        ChangeNotifierProvider(create: (_) => AccentColorNotifier(accentColor)),
-        ChangeNotifierProvider(create: (_) => HighContrastNotifier(highContrast)),
-        ChangeNotifierProvider(create: (_) => ReduceMotionNotifier(reduceMotion)),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => ThemeNotifier(isDark)),
+    ChangeNotifierProvider(create: (_) => FontScaleNotifier(fontScale)),
+    ChangeNotifierProvider(create: (_) => AccentColorNotifier(accentColor)),
+    ChangeNotifierProvider(create: (_) => HighContrastNotifier(highContrast)),
+    ChangeNotifierProvider(create: (_) => ReduceMotionNotifier(reduceMotion)),
+  ], child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -64,36 +54,28 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer4<ThemeNotifier, FontScaleNotifier, AccentColorNotifier, HighContrastNotifier>(
-      builder: (context, themeNotifier, fontScaleNotifier, accentColorNotifier, highContrastNotifier, child) {
-        ThemeData baseTheme = themeNotifier.themeData;
-        if (highContrastNotifier.highContrast) {
+      builder: (context, theme, fontScale, accent, highContrast, child) {
+        ThemeData baseTheme = theme.themeData;
+
+        // Si el mode d’alt contrast està activat, personalitza el tema
+        if (highContrast.highContrast) {
           baseTheme = baseTheme.copyWith(
             colorScheme: baseTheme.colorScheme.copyWith(
-              background: themeNotifier.darkMode ? Colors.black : Colors.white,
-              onBackground: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
-              primary: themeNotifier.darkMode ? Colors.white : Colors.black,
+              background: theme.darkMode ? Colors.black : Colors.white,
+              onBackground: theme.darkMode ? Colors.yellowAccent : Colors.black,
+              primary: theme.darkMode ? Colors.white : Colors.black,
               secondary: Colors.yellowAccent,
-              surface: themeNotifier.darkMode ? Colors.black : Colors.white,
-              onSurface: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
+              surface: theme.darkMode ? Colors.black : Colors.white,
+              onSurface: theme.darkMode ? Colors.yellowAccent : Colors.black,
             ),
             textTheme: baseTheme.textTheme.copyWith(
-              bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
-              ),
-              bodyMedium: baseTheme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
-              ),
-              titleLarge: baseTheme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: themeNotifier.darkMode ? Colors.yellowAccent : Colors.black,
-              ),
+              bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.darkMode ? Colors.yellowAccent : Colors.black),
+              bodyMedium: baseTheme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.darkMode ? Colors.yellowAccent : Colors.black),
+              titleLarge: baseTheme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.darkMode ? Colors.yellowAccent : Colors.black),
             ),
             switchTheme: baseTheme.switchTheme.copyWith(
               thumbColor: MaterialStateProperty.all(Colors.yellowAccent),
-              trackColor: MaterialStateProperty.all(
-                  themeNotifier.darkMode ? Colors.black87 : Colors.grey[300]),
+              trackColor: MaterialStateProperty.all(theme.darkMode ? Colors.black87 : Colors.grey[300]),
             ),
           );
         }
@@ -102,20 +84,14 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'RecipeAI App',
           theme: baseTheme.copyWith(
-            scaffoldBackgroundColor: themeNotifier.darkMode ? Colors.black : Colors.white,
-            primaryColor: themeNotifier.darkMode ? Colors.white : Colors.black,
-            colorScheme: baseTheme.colorScheme.copyWith(
-              secondary: accentColorNotifier.accentColor,
-            ),
+            scaffoldBackgroundColor: theme.darkMode ? Colors.black : Colors.white,
+            primaryColor: theme.darkMode ? Colors.white : Colors.black,
+            colorScheme: baseTheme.colorScheme.copyWith(secondary: accent.accentColor),
           ),
-          builder: (context, child) {
-            return MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaleFactor: fontScaleNotifier.fontScale,
-              ),
-              child: child!,
-            );
-          },
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaleFactor: fontScale.fontScale),
+            child: child!,
+          ),
           home: const RootPage(),
         );
       },
@@ -123,6 +99,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// Gestor de navegació principal amb BottomNavigationBar
 class RootPage extends StatefulWidget {
   const RootPage({super.key});
   @override
@@ -131,16 +108,13 @@ class RootPage extends StatefulWidget {
 
 class _RootPageState extends State<RootPage> {
   int _currentIndex = 0;
+
   @override
   void initState() {
     super.initState();
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (mounted) {
-        setState(() {
-          if (user != null) {
-            _currentIndex = 1;  // <--- redirigeix a la pantalla "Populars"
-          }
-        });
+      if (mounted && user != null) {
+        setState(() => _currentIndex = 1); // Entra a "Populars" si inicia sessió
       }
     });
   }
@@ -148,6 +122,8 @@ class _RootPageState extends State<RootPage> {
   @override
   Widget build(BuildContext context) {
     final loggedIn = FirebaseAuth.instance.currentUser != null;
+
+    // Definició de pantalles segons si l’usuari ha iniciat sessió
     final pages = [
       const IniciScreen(),
       const PopularScreen(),
@@ -158,25 +134,15 @@ class _RootPageState extends State<RootPage> {
       const SettingsScreen(),
     ];
 
+    // Ítems del menú inferior
     final items = [
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.menu_book_rounded), label: 'Inici'),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.star), label: 'Populars'),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.photo_camera), label: 'Escanejar'),
-      if (loggedIn)
-        const BottomNavigationBarItem(
-            icon: Icon(Icons.history), label: 'Historial'),
-      if (loggedIn)
-        const BottomNavigationBarItem(
-            icon: Icon(Icons.favorite), label: 'Favorits'),
-      BottomNavigationBarItem(
-        icon: Icon(loggedIn ? Icons.account_circle : Icons.login),
-        label: loggedIn ? 'Perfil' : 'Login',
-      ),
-      const BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined), label: 'Configuració'),
+      const BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: 'Inici'),
+      const BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Populars'),
+      const BottomNavigationBarItem(icon: Icon(Icons.photo_camera), label: 'Escanejar'),
+      if (loggedIn) const BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historial'),
+      if (loggedIn) const BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favorits'),
+      BottomNavigationBarItem(icon: Icon(loggedIn ? Icons.account_circle : Icons.login), label: loggedIn ? 'Perfil' : 'Login'),
+      const BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Configuració'),
     ];
 
     _currentIndex = _currentIndex.clamp(0, pages.length - 1);

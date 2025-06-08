@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Notificador per gestionar el color d'accent de l'app
 class AccentColorNotifier extends ChangeNotifier {
   Color _accentColor;
   AccentColorNotifier(this._accentColor);
@@ -8,6 +9,6 @@ class AccentColorNotifier extends ChangeNotifier {
 
   void setAccentColor(Color c) {
     _accentColor = c;
-    notifyListeners();
+    notifyListeners(); // 🔄 Notifica els widgets que escolten
   }
 }

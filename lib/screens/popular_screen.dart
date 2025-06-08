@@ -12,14 +12,15 @@ class PopularScreen extends StatefulWidget {
 }
 
 class _PopularScreenState extends State<PopularScreen> {
+  // conjunt d’al·lèrgens definits pel perfil de l’usuari
   Set<String> _userAllergens = {};
 
   @override
-  void initState() {
-    super.initState();
-    _loadAllergens();
+  void initState() {super.initState();
+    _loadAllergens();  // carregar preferències d’al·lèrgens
   }
 
+  // consulta a Firestore per obtenir la llista d’al·lèrgens de l’usuari actual
   Future<void> _loadAllergens() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final snap =
@@ -30,11 +31,9 @@ class _PopularScreenState extends State<PopularScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final recipesStream = FirebaseFirestore.instance
-        .collection('recipes')
-        .orderBy('likes', descending: true)
-        .limit(20)
-        .snapshots();
+    // consulta en temps real a les 20 receptes amb més likes
+    final recipesStream = FirebaseFirestore.instance.collection('recipes').orderBy('likes', descending: true)
+        .limit(20).snapshots();
 
     return SafeArea(
       child: Padding(
@@ -43,10 +42,13 @@ class _PopularScreenState extends State<PopularScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            Text('Plats més populars',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                )),
+            // títol principal
+            Text(
+              'Plats més populars',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -55,25 +57,29 @@ class _PopularScreenState extends State<PopularScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
                   final docs = snapshot.data?.docs ?? [];
 
+                  // convertir documents en objectes Recipe i filtrar per al·lèrgens
                   final recipes = docs.map((d) {
-                    final r = Recipe.fromJson(d.data() as Map<String, dynamic>, d.id);
+                    final r = Recipe.fromJson(d.data() as Map<String, dynamic>, d.id,);
                     return r;
-                  }).where((r) => _userAllergens.isEmpty ||
+                  }).where((r) =>
+                  _userAllergens.isEmpty || // cap filtre si no hi ha al·lèrgens
                       r.alergenos.every((a) => !_userAllergens.contains(a))).toList();
 
+                  // missatge si no hi ha cap recepta visible per l’usuari
                   if (recipes.isEmpty) {
                     return const Center(child: Text('No hi ha receptes populars.'));
                   }
 
+                  // llista de receptes amb targetes personalitzades
                   return ListView.builder(
                     itemCount: recipes.length,
                     itemBuilder: (_, i) => Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: RecipeCard(recipe: recipes[i]),
                     ),
-
                   );
                 },
               ),

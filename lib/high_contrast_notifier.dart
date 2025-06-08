@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Notificador per activar/desactivar el mode d’alt contrast
 class HighContrastNotifier extends ChangeNotifier {
   bool _highContrast;
   HighContrastNotifier(this._highContrast);
@@ -8,6 +9,6 @@ class HighContrastNotifier extends ChangeNotifier {
 
   void setHighContrast(bool value) {
     _highContrast = value;
-    notifyListeners();
+    notifyListeners(); // Actualitza els widgets que depenen del contrast
   }
 }

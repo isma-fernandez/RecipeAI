@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+// placeholder temporal per les pantalles
 class Placeholder1 extends StatelessWidget {
   const Placeholder1({super.key});
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Notificador per controlar si l'usuari prefereix reduir animacions
 class ReduceMotionNotifier extends ChangeNotifier {
   bool _reduceMotion;
   ReduceMotionNotifier(this._reduceMotion);
@@ -8,6 +9,6 @@ class ReduceMotionNotifier extends ChangeNotifier {
 
   void setReduceMotion(bool value) {
     _reduceMotion = value;
-    notifyListeners();
+    notifyListeners(); // Notifica els widgets que depenen d'aquest valor
   }
 }
